@@ -1,66 +1,68 @@
 <template>
   <div class="blue-green-test-wrapper">
     <div :style="{ backgroundColor: currentColor }" class="blue-green-test-container">
-      <div v-if="rounds < 6" class="blue-green-test-content">
+      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-content">
         <transition name="fade-up" mode="out-in">
           <h1 v-if="showInitialMessage" key="initial" class="blue-green-test-title">
-            Test your color perception
+            <span class="background-white">Test <i>your</i> color perception</span>
           </h1>
-          <h1 v-else key="main" class="blue-green-test-title">Is My Blue Your Blue?</h1>
+          <h1 v-else key="main" class="blue-green-test-title">
+            <span class="background-white">Is <i>my</i> blue <i>your</i> blue?</span>
+          </h1>
         </transition>
       </div>
       <div v-else class="blue-green-test-content blue-green-test-result-screen">
         <div class="blue-green-test-result-color" :style="{ backgroundColor: bluerColor }">
-          <p>This is Blue</p>
+          <p class="result-text">This is <i>your</i> blue</p>
         </div>
-        <div class="blue-green-test-result-text">
-          <p>Your boundary is at hue {{ finalHue.toFixed(1) }}</p>
+        <div class="blue-green-test-result-text" :style="{ backgroundColor: currentColor }">
+          <p class="result-text">Boundary at hue {{ finalHue.toFixed(1) }}</p>
         </div>
         <div class="blue-green-test-result-color" :style="{ backgroundColor: greenerColor }">
-          <p>This is Green</p>
+          <p class="result-text">This is <i>your</i> green</p>
         </div>
       </div>
-      <div class="blue-green-test-button-container" :class="{ 'end-state': rounds >= 7 }">
-        <button
-          @click="selectColor('green')"
-          class="blue-green-test-button"
-          :class="{ invisible: rounds >= 7 }"
-        >
-          This is Blue
+      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
+        <button @click="selectColor('blue')" class="blue-green-test-button blue-button grow-button">
+          This is blue
         </button>
-        <button @click="reset" class="blue-green-test-button blue-green-test-reset-button">
+        <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
           Reset
         </button>
         <button
-          @click="selectColor('blue')"
-          class="blue-green-test-button"
-          :class="{ invisible: rounds >= 7 }"
+          @click="selectColor('green')"
+          class="blue-green-test-button green-button grow-button"
         >
-          This is Green
+          This is green
         </button>
       </div>
-      <button
-        v-if="rounds >= 6"
-        @click="submitResults"
-        class="blue-green-test-button blue-green-test-submit-button"
-      >
-        Submit your results
-      </button>
+      <div v-else class="blue-green-test-button-container two-buttons">
+        <button
+          @click="submitResults"
+          class="blue-green-test-button submit-button grow-button"
+          :disabled="submitted"
+        >
+          {{ submitted ? 'Submitted!' : 'Submit results' }}
+        </button>
+        <button @click="reset" class="blue-green-test-button final-reset-button grow-button">
+          Reset
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { createClient } from '@supabase/supabase-js'
+import { MAX_ROUNDS, SUPABASE_URL, SUPABASE_KEY } from '@/config'
+import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 
-const supabase = createClient(
-  'https://agbofzcbkywbsojudbry.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYm9memNia3l3YnNvanVkYnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMzNDQ0ODAsImV4cCI6MjAzODkyMDQ4MH0.WeYGvm00hGFeCJWQS-YWz-xm66OKq6Gu8zicRxoxYxg'
-)
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 export default {
   data() {
     return {
+      MAX_ROUNDS: MAX_ROUNDS,
       blueHue: 240,
       greenHue: 120,
       currentHue: 210,
@@ -69,13 +71,13 @@ export default {
       rounds: 0,
       finalHue: 0,
       responses: [],
-      submitting: false,
       userAgent: '',
       screenWidth: 0,
       screenHeight: 0,
       colorDepth: 0,
       pixelRatio: 1,
-      timestamp: ''
+      timestamp: '',
+      submitted: false
     }
   },
   computed: {
@@ -92,14 +94,15 @@ export default {
   methods: {
     selectColor(color) {
       if (color === 'blue') {
-        this.greenHue = this.currentHue
-      } else {
         this.blueHue = this.currentHue
+      } else {
+        this.greenHue = this.currentHue
       }
       this.currentHue = this.blueHue + (this.greenHue - this.blueHue) / this.phi
       this.rounds++
-      if (this.rounds === 6) {
+      if (this.rounds === MAX_ROUNDS) {
         this.finalHue = this.currentHue
+        confetti()
       }
       this.responses.push({ hue: this.currentHue, response: color })
     },
@@ -110,15 +113,13 @@ export default {
       this.rounds = 0
       this.finalHue = 0
       this.showInitialMessage = true
+      this.submitted = false
       this.responses = []
       setTimeout(() => {
         this.showInitialMessage = false
       }, 2000)
     },
     async submitResults() {
-      if (this.submitting) return
-      this.submitting = true
-
       this.gatherDeviceInfo()
       this.timestamp = new Date().toISOString()
 
@@ -138,12 +139,10 @@ export default {
 
         if (error) throw error
 
-        alert('Results submitted successfully!')
+        this.submitted = true
       } catch (error) {
         console.error('Error submitting results:', error)
         alert('Failed to submit results. Please try again.')
-      } finally {
-        this.submitting = false
       }
     },
     gatherDeviceInfo() {
@@ -166,7 +165,7 @@ export default {
 .blue-green-test-wrapper {
   width: 100vw !important;
   max-width: none !important;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -190,7 +189,7 @@ export default {
 }
 
 .blue-green-test-title {
-  font-size: 2.25rem;
+  font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 1rem;
   color: black;
@@ -198,61 +197,9 @@ export default {
   width: 100%;
 }
 
-.blue-green-test-button-container {
-  width: 100%;
-  padding: 0 20px 20px; /* Reduced padding for all screen sizes */
-  display: flex;
-  gap: 0.5rem; /* Reduced gap between buttons */
-}
-
-.blue-green-test-button {
-  flex: 1;
-  padding: 0.75rem 0; /* Slightly reduced vertical padding */
-  background-color: #f0f0f0;
-  color: #1f2937;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  font-size: 0.9rem; /* Slightly smaller font size */
-}
-
-.blue-green-test-reset-button {
-  flex: 0.8; /* Slightly larger than before to give it more space */
-}
-
-/* Adjust padding and font size for larger screens */
-@media (min-width: 640px) {
-  .blue-green-test-button-container {
-    padding: 0 50px 50px; /* Return to original padding for larger screens */
-    gap: 1rem;
-  }
-
-  .blue-green-test-button {
-    padding: 1rem 0;
-    font-size: 1rem;
-  }
-
-  .blue-green-test-reset-button {
-    flex: 0.5; /* Return to original size for larger screens */
-  }
-}
-.blue-green-test-button:hover:not(:disabled):not(.invisible) {
-  background-color: #e0e0e0;
-}
-
-.blue-green-test-button.invisible {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.blue-green-test-reset-button {
-  flex: 0.5;
-}
-
 .blue-green-test-result-screen {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: stretch;
   width: 100% !important;
   max-width: none !important;
@@ -265,21 +212,82 @@ export default {
   align-items: center;
   justify-content: center;
   text-align: center;
+  padding: 1rem;
 }
 
 .blue-green-test-result-text {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
-.blue-green-test-result-screen p {
+.result-text,
+.background-white {
+  background-color: white;
   color: black;
-  font-size: 1.5rem;
   font-weight: bold;
+  padding: 1px;
+}
+
+.result-text {
+  font-size: 1.5rem;
+}
+
+.blue-green-test-button-container {
+  width: 100%;
+  height: 60px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.blue-green-test-button {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: bold;
+  flex: 1 auto;
+  margin: 0;
+  background-color: black;
+  color: white;
+  overflow: hidden;
+  display: inline-block;
+  box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 1);
+}
+
+.mid-reset-button {
+  border-left: 1px solid white;
+  border-right: 1px solid white;
+}
+
+.final-reset-button {
+  border-left: 1px solid white;
+}
+
+.blue-green-test-button:disabled {
+  cursor: not-allowed;
+  background-color: #222;
+}
+
+.blue-green-test-button:focus {
+  outline: none;
+}
+
+.blue-green-test-button:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 1);
+}
+
+.three-buttons .blue-green-test-button {
+  width: 33.3333%;
+}
+
+.two-buttons .blue-green-test-button {
+  width: 50%;
 }
 
 .fade-up-enter-active,
@@ -293,14 +301,21 @@ export default {
   transform: translateY(30px);
 }
 
-@media (min-width: 640px), (min-width: 1024px) {
-  .blue-green-test-wrapper,
-  .blue-green-test-container,
-  .blue-green-test-content,
-  .blue-green-test-result-screen {
-    width: 100vw !important;
-    max-width: none !important;
+@media (hover: hover) and (pointer: fine) {
+  .blue-green-test-button:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 1);
   }
+}
+
+@media (hover: none) {
+  .blue-green-test-button:hover {
+    box-shadow: none;
+  }
+}
+
+.blue-green-test-button:active:not(:disabled) {
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 1);
+  transition: box-shadow 0.1s ease;
 }
 
 @media (min-width: 1024px) {
@@ -311,14 +326,5 @@ export default {
     right: 0;
     bottom: 0;
   }
-}
-
-.blue-green-test-submit-button {
-  margin-top: 1rem;
-  background-color: #4caf50;
-  color: white;
-}
-.blue-green-test-submit-button:hover {
-  background-color: #45a049;
 }
 </style>

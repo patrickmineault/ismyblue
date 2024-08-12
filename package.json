@@ -14,6 +14,7 @@
     "@supabase/supabase-js": "^2.45.1",
     "faunadb": "^4.8.0",
     "vue": "^3.4.29",
+    "vue-confetti": "^2.3.0",
     "vue-router": "^4.3.3"
   },
   "devDependencies": {
