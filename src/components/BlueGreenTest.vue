@@ -16,7 +16,7 @@
           <p class="result-text">This is <i>your</i> blue</p>
         </div>
         <div class="blue-green-test-result-text" :style="{ backgroundColor: currentColor }">
-          <p class="result-text">Boundary at hue {{ finalHue.toFixed(1) }}</p>
+          <p class="result-text">Boundary at hue {{ Math.round(finalHue) }}</p>
         </div>
         <div class="blue-green-test-result-color" :style="{ backgroundColor: greenerColor }">
           <p class="result-text">This is <i>your</i> green</p>
@@ -54,7 +54,7 @@
 
 <script>
 import { createClient } from '@supabase/supabase-js'
-import { MAX_ROUNDS, SUPABASE_URL, SUPABASE_KEY } from '@/config'
+import { MAX_ROUNDS, SUPABASE_URL, SUPABASE_KEY, VERSION } from '@/config'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
@@ -63,10 +63,10 @@ export default {
   data() {
     return {
       MAX_ROUNDS: MAX_ROUNDS,
-      blueHue: 240,
-      greenHue: 120,
-      currentHue: 210,
-      phi: (1 + Math.sqrt(5)) / 2, // Golden ratio
+      blueHue: 210,
+      greenHue: 210 - 64,
+      currentHue: Math.random() < 0.5 ? 210 : 210 - 64,
+      factor: 2, // faster convergence than factor
       showInitialMessage: true,
       rounds: 0,
       finalHue: 0,
@@ -98,7 +98,7 @@ export default {
       } else {
         this.greenHue = this.currentHue
       }
-      this.currentHue = this.blueHue + (this.greenHue - this.blueHue) / this.phi
+      this.currentHue = this.blueHue + (this.greenHue - this.blueHue) / this.factor
       this.rounds++
       if (this.rounds === MAX_ROUNDS) {
         this.finalHue = this.currentHue
@@ -133,7 +133,8 @@ export default {
             pixel_ratio: this.pixelRatio,
             timestamp: this.timestamp,
             responses: this.responses,
-            final_hue: this.finalHue
+            final_hue: this.finalHue,
+            version: VERSION
           }
         ])
 
