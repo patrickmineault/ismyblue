@@ -31,3 +31,5 @@ coverage
 
 # Local Netlify folder
 .netlify
+
+analysis/.env
