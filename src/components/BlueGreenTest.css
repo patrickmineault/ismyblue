@@ -1,0 +1,165 @@
+.blue-green-test-wrapper {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.blue-green-test-container {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.blue-green-test-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.blue-green-test-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: black;
+  text-align: center;
+  width: 100%;
+}
+
+.blue-green-test-result-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100%;
+}
+
+.blue-green-test-result-color {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+.blue-green-test-result-text {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+.result-text,
+.background-white {
+  background-color: white;
+  color: black;
+  font-weight: bold;
+  padding: 1px;
+}
+
+.result-text {
+  font-size: 1.5rem;
+}
+
+.blue-green-test-button-container {
+  width: 100%;
+  height: 60px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.blue-green-test-button {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: bold;
+  flex: 1 auto;
+  margin: 0;
+  background-color: black;
+  color: white;
+  overflow: hidden;
+  display: inline-block;
+  box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 1);
+  border-top: 1px solid white;
+}
+
+.mid-reset-button {
+  border-left: 1px solid white;
+  border-right: 1px solid white;
+}
+
+.final-reset-button {
+  border-left: 1px solid white;
+}
+
+.blue-green-test-button:disabled {
+  cursor: not-allowed;
+  background-color: #222;
+}
+
+.blue-green-test-button:focus {
+  outline: none;
+}
+
+.blue-green-test-button:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 1);
+}
+
+.three-buttons .blue-green-test-button {
+  width: 33.3333%;
+}
+
+.two-buttons .blue-green-test-button {
+  width: 50%;
+}
+
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: all 0.5s ease;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .blue-green-test-button:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 1);
+  }
+}
+
+@media (hover: none) {
+  .blue-green-test-button:hover {
+    box-shadow: none;
+  }
+}
+
+.blue-green-test-button:active:not(:disabled) {
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 1);
+  transition: box-shadow 0.1s ease;
+}
+
+@media (min-width: 1024px) {
+  .blue-green-test-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
