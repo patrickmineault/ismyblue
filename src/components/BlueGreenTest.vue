@@ -4,7 +4,7 @@
       <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-content">
         <transition name="fade-up" mode="out-in">
           <h1 v-if="showInitialMessage" key="initial" class="blue-green-test-title">
-            <span class="background-white">Test <i>your</i> color perception</span>
+            <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
           <h1 v-else key="main" class="blue-green-test-title">
             <span class="background-white">Is <i>my</i> blue <i>your</i> blue?</span>
@@ -42,9 +42,87 @@
         >
           {{ submitted ? 'Submitted!' : 'Submit results' }}
         </button>
+        <button
+          @click="showAbout = true"
+          class="blue-green-test-button final-reset-button grow-button"
+        >
+          About
+        </button>
         <button @click="reset" class="blue-green-test-button final-reset-button grow-button">
           Reset
         </button>
+      </div>
+    </div>
+    <div v-if="showAbout" class="about-popup">
+      <div class="about-content">
+        <button @click="showAbout = false" class="close-button">&times;</button>
+        <h2>About This Website</h2>
+        <p>
+          People have different names for the colors they see.
+          <a href="https://en.wikipedia.org/wiki/Sapir%E2%80%93Whorf_hypothesis" target="_blank"
+            >Language can affect how we memorize and name colors</a
+          >. This is a color naming test designed to measure your personal blue-green boundary.
+        </p>
+        <h2>Test validity</h2>
+        <p>
+          <b><i>This website is for entertainment purposes only.</i></b>
+        </p>
+        <p>
+          Color perception is tricky to measure–vision scientists use specialized calibrated
+          equipment to color perception. Graphic designers use physical color cards, such as those
+          <a
+            href="https://www.npr.org/2024/07/19/1197961103/pantone-colors-lawrence-herbert-stuart-semple-standards"
+            >made by Pantone</a
+          >, so that they can communicate colors unambiguously. Here we use your monitor or phone to
+          test how you categorize colors, which is far from perfect.
+        </p>
+        <p>
+          The validity of the inference is limited by the calibration of your monitor, ambient
+          lighting, and filters such as night mode. Despite these limitations, the results should
+          have good test-retest reliability <i>on the same device, in the same ambient light</i>,
+          which you can verify by taking the test multiple times. If you want to compare your
+          results with friends, use the same device in the same ambient light.
+        </p>
+        <p>
+          Getting outlier results doesn't mean there's anything wrong with your vision. It might
+          mean you have an idiosyncratic way of naming colors, or that your monitor and lighting is
+          unusual.
+        </p>
+        <h2>Technical Details</h2>
+        <p>
+          The test asks you to categorize colors sequentially. Colors are often represented in HSL
+          (hue, saturation, lightness) color space. Hue 120 is green, and hue 240 is blue. The test
+          focuses on blue-green hues between 150 and 210. The test asssumes that your responses
+          between blue and green are represented by a sigmoid curve. It sequentially fits that
+          sigmoid curve to your responses, and uses the fitted curve to predict the color you will
+          name next. The test uses a maximum-a-posteriori (MAP) estimation algorithm to fit the
+          sigmoid curve to your responses. This is equivalent to a logistic regression model with a
+          vague prior on the scale and offset parameters. It tries to be smart about where it
+          samples new points, focusing on regions where you're intermediately confident in your
+          responses. To improve the validity of the results, it randomizes which points it samples,
+          and uses a noise mask to mitigate visual adaptation.
+        </p>
+        <h2>Results</h2>
+        <p>
+          In early experiments, we found that people's responses cluster around 175, which
+          coincidentally is the same as the named HTML color turquoise
+          <span class="color-chip-turquoise mr-1"></span>. This is interesting, because the nominal
+          boundary between blue and green is at 180, the named HTML color cyan
+          <span class="color-chip-cyan mr-1"></span>. That means most people's boundaries are
+          shifted toward saying that cyan is blue.
+        </p>
+        <h2>What happens when I hit submit?</h2>
+        <p>
+          When you hit submit, we store your responses anonymously so we can aggregate them later
+          and measure aggregate naming curves. We don't store any information that would identify
+          you personally.
+        </p>
+        <h2>Who made this?</h2>
+        <p>
+          I'm Patrick Mineault, a neuroscience and AI researcher. I made this as a side project
+          using Claude 3.5 Sonnet. I obtained a PhD in visual neuroscience from McGill in 2014. You
+          can read <a href="https://neuroai.science">my blog here</a>.
+        </p>
       </div>
     </div>
   </div>
@@ -95,7 +173,8 @@ export default {
       binPosition: BIN_POSITION,
       count: BIN_COUNT,
       xCdf: X_CDF,
-      yCdf: Y_CDF
+      yCdf: Y_CDF,
+      showAbout: false
     }
   },
   computed: {
@@ -207,3 +286,68 @@ export default {
 </script>
 
 <style src="./BlueGreenTest.css" scoped />
+<style scoped>
+.color-chip-turquoise {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: turquoise;
+  border: 2px solid black;
+  border-radius: 0.2em;
+  margin-bottom: -0.2em;
+}
+.color-chip-cyan {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: cyan;
+  border: 2px solid black;
+  border-radius: 0.2em;
+  margin-bottom: -0.2em;
+}
+
+.about-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.about-content {
+  background-color: white;
+  color: black;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+  position: relative;
+  font-family: 'Cabin', sans-serif;
+  font-size: 0.9rem;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.about-content h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.about-content p {
+  margin-bottom: 1rem;
+}
+</style>

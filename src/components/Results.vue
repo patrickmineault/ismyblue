@@ -15,8 +15,20 @@
     </div>
     <div class="blue-green-test-result-text w-full mt-0 bg-white">
       <p class="result-text">
-        <i>Your</i> boundary is at hue {{ Math.round(userThreshold)
-        }}<span v-html="greenInclusive"></span>
+        <i>Your</i> boundary is at hue {{ Math.round(userThreshold) }},
+        <span v-if="greenInclusive > 0.55">
+          bluer than {{ Math.round(greenInclusive * 100) }}% of the population. For <i>you</i>,
+          turquoise
+          <span class="color-chip mr-1"></span>
+          is green.
+        </span>
+        <span v-else-if="greenInclusive < 0.45">
+          greener than {{ Math.round((1 - greenInclusive) * 100) }}% of the population. For
+          <i>you</i>, turquoise
+          <span class="color-chip mr-1"></span>
+          is blue.
+        </span>
+        <span v-else> just like the population median. You're a true neutral. </span>
       </p>
     </div>
   </div>
@@ -40,32 +52,21 @@ export default {
     greenInclusive() {
       const index = this.xCdf.findIndex((value) => value > this.userThreshold)
       const greenInclusive = index !== -1 ? this.yCdf[index] : 1
-      if (greenInclusive > 0.55) {
-        return (
-          ', bluer than ' +
-          Math.round(greenInclusive * 100) +
-          '% of the population. For <i>you</i>, turquoise is green.'
-        )
-      } else if (greenInclusive < 0.45) {
-        return (
-          ', greener than ' +
-          Math.round((1 - greenInclusive) * 100) +
-          '% of the population. For <i>you</i>, turquoise is blue.'
-        )
-      } else {
-        return ", just like the population median. You're a true neutral."
-      }
+      return greenInclusive
     }
   },
   mounted() {
     this.createPlot()
   },
-  handleResize() {
-    this.createPlot()
-  },
   methods: {
+    handleResize() {
+      this.createPlot()
+    },
     createPlot() {
       const svg = d3.select(this.$refs.svg)
+      // Clear the svg on resize.
+      svg.selectAll('*').remove()
+
       const width = this.$refs.svg.clientWidth
       const height = this.$refs.svg.clientHeight
       const margin = { top: 0, right: 0, bottom: 0, left: 0 }
@@ -238,5 +239,15 @@ svg {
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+.color-chip {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: turquoise;
+  border: 2px solid black;
+  border-radius: 0.2em;
+  margin-bottom: -0.2em;
 }
 </style>
