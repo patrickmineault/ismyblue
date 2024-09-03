@@ -53,6 +53,71 @@
         </button>
       </div>
     </div>
+    <div v-if="submitted && showDemo" class="blue-green-test-submitted-message about-popup">
+      <div class="about-content">
+        <button @click="showDemo = false" class="close-button">&times;</button>
+        <h2>Thanks! Before you go...</h2>
+        <p>
+          Optionally tell us a bit about yourself. We'll make aggregate plots for how different
+          people categorize colors.
+        </p>
+        <h3>Your first language</h3>
+        <form @submit.prevent="submitDemographics">
+          <div class="form-group">
+            <label for="firstLanguage"
+              >Languages differ in how they name colors. What's your first language?</label
+            >
+            <div>
+              <select id="firstLanguage" v-model="firstLanguage" class="form-control">
+                <option value="Unspecified">Select a language</option>
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+                <option value="Portuguese">Portuguese</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+                <option value="Italian">Italian</option>
+                <option value="Greek">Greek</option>
+                <option value="Russian">Russian</option>
+                <option value="Arabic">Arabic</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Korean">Korean</option>
+                <option value="Thai">Thai</option>
+                <option value="Vietnamese">Vietnamese</option>
+                <option value="Other with blue-green distinction">
+                  Another language with distinct words for blue and green
+                </option>
+                <option value="Other without blue-green distinction">
+                  Another language without a blue-green distinction
+                </option>
+              </select>
+            </div>
+          </div>
+          <h3>Are you colorblind?</h3>
+          <div class="form-group">
+            <label for="colorBlindness">Being colorblind might affect the results.</label>
+            <div>
+              <select id="colorBlindness" v-model="colorBlindness" class="form-control">
+                <option value="unspecified">Select an option</option>
+                <option value="dontknow">I don't know</option>
+                <option value="no">No</option>
+                <option value="red-green">Yes, red-green, unknown subtype</option>
+                <option value="protanopia">Yes, protanopia</option>
+                <option value="protanomaly">Yes, protanomaly</option>
+                <option value="deuteranopia">Yes, deuteranopia</option>
+                <option value="deuteranomaly">Yes, deuteranomaly</option>
+                <option value="tritanopia">Yes, tritanopia</option>
+                <option value="tritanomaly">Yes, tritanomaly</option>
+                <option value="achromatopsia">Yes, achromatopsia</option>
+                <option value="achromatomaly">Yes, achromatomaly</option>
+              </select>
+            </div>
+            <p><b>This is not a diagnostic tool.</b></p>
+          </div>
+          <button type="submit" class="submit-button-demo">Submit</button>
+        </form>
+      </div>
+    </div>
     <div v-if="showAbout" class="about-popup">
       <div class="about-content">
         <button @click="showAbout = false" class="close-button">&times;</button>
@@ -74,7 +139,8 @@
             href="https://www.npr.org/2024/07/19/1197961103/pantone-colors-lawrence-herbert-stuart-semple-standards"
             >made by Pantone</a
           >, so that they can communicate colors unambiguously. Here we use your monitor or phone to
-          test how you categorize colors, which is far from perfect.
+          test how you categorize colors, which is far from perfect, since your calibration may
+          differ from mine.
         </p>
         <p>
           The validity of the inference is limited by the calibration of your monitor, ambient
@@ -92,16 +158,30 @@
         <p>
           The test asks you to categorize colors sequentially. Colors are often represented in HSL
           (hue, saturation, lightness) color space. Hue 120 is green, and hue 240 is blue. The test
-          focuses on blue-green hues between 150 and 210. The test asssumes that your responses
+          focuses on blue-green hues between 150 and 210. The test assumes that your responses
           between blue and green are represented by a sigmoid curve. It sequentially fits that
-          sigmoid curve to your responses, and uses the fitted curve to predict the color you will
-          name next. The test uses a maximum-a-posteriori (MAP) estimation algorithm to fit the
-          sigmoid curve to your responses. This is equivalent to a logistic regression model with a
-          vague prior on the scale and offset parameters. It tries to be smart about where it
-          samples new points, focusing on regions where you're intermediately confident in your
-          responses. To improve the validity of the results, it randomizes which points it samples,
-          and uses a noise mask to mitigate visual adaptation.
+          sigmoid curve to your responses:
         </p>
+
+        <img src="@/assets/formula.svg" alt="Formula" />
+        <br />
+        <p>
+          This is equivalent to a logistic regression model. The test uses a maximum-a-posteriori
+          (MAP) estimation algorithm (specifically, a second order Newton method implemented in pure
+          JS, no calls to a backend) to fit the sigmoid curve to your responses, with a vague prior
+          on the scale and offset parameters. It uses the fitted curve to determine which color will
+          be presented next. It tries to be smart about where it samples new points, focusing on
+          regions where you're predicted to be intermediately confident in your responses. To
+          improve the validity of the results, it randomizes which points it samples, and uses a
+          noise mask to mitigate visual adaptation.
+        </p>
+        <p>
+          It's a curve fit, not a binary search. In theory, if you feel like you're guessing in the
+          middle shades, or even guessing incorrectly, that should be fine. If you're inconsistent
+          in the middle, the curve fit should be able to recover, although your estimated threshold
+          will have larger error bars.
+        </p>
+
         <h2>Results</h2>
         <p>
           In early experiments, we found that people's responses cluster around 175, which
@@ -122,6 +202,10 @@
           I'm Patrick Mineault, a neuroscience and AI researcher. I made this as a side project
           using Claude 3.5 Sonnet. I obtained a PhD in visual neuroscience from McGill in 2014. You
           can read <a href="https://neuroai.science">my blog here</a>.
+        </p>
+        <h2>Can I make a version of this for my favorite color pair?</h2>
+        <p>
+          <a href="https://github.com/patrickmineault/ismyblue">Right this way to Github.</a>
         </p>
       </div>
     </div>
@@ -174,7 +258,9 @@ export default {
       count: BIN_COUNT,
       xCdf: X_CDF,
       yCdf: Y_CDF,
-      showAbout: false
+      showAbout: false,
+      showDemo: false,
+      anonymousId: this.generateAnonymousId()
     }
   },
   computed: {
@@ -231,6 +317,7 @@ export default {
       }, 200)
     },
     reset() {
+      this.anonymousId = this.generateAnonymousId()
       this.currentHue = Math.random() > 0.5 ? 150 : 210
       this.rounds = 0
       this.finalHue = 0
@@ -242,28 +329,53 @@ export default {
         this.showInitialMessage = false
       }, 2000)
     },
-    async submitResults() {
-      this.gatherDeviceInfo()
-      this.timestamp = new Date().toISOString()
-
+    generateAnonymousId() {
+      return (
+        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      )
+    },
+    async submitDemographics() {
       try {
-        const { data, error } = await supabase.from('color_test_results').insert([
+        const { data, error } = await supabase.from('color_test_demo').insert([
           {
-            user_agent: this.userAgent,
-            screen_width: this.screenWidth,
-            screen_height: this.screenHeight,
-            color_depth: this.colorDepth,
-            pixel_ratio: this.pixelRatio,
-            timestamp: this.timestamp,
-            responses: this.responses,
-            final_hue: this.finalHue,
-            version: VERSION
+            anonymous_id: this.anonymousId,
+            first_language: this.firstLanguage,
+            color_blindness: this.colorBlindness
           }
         ])
+        this.showDemo = false
+      } catch (error) {
+        console.error('Error submitting demographics:', error)
+        alert('Failed to submit demographics. Please try again.')
+      }
+    },
+    async submitResults() {
+      this.gatherDeviceInfo()
+      const now = new Date()
+      this.timestamp = now.toISOString()
+      this.localTimestamp = now.toLocaleString()
+
+      try {
+        const payload = {
+          anonymous_id: this.anonymousId,
+          user_agent: this.userAgent,
+          screen_width: this.screenWidth,
+          screen_height: this.screenHeight,
+          color_depth: this.colorDepth,
+          pixel_ratio: this.pixelRatio,
+          timestamp: this.timestamp,
+          local_timestamp: this.localTimestamp,
+          responses: this.responses,
+          final_hue: this.finalHue,
+          version: VERSION
+        }
+        const { data, error } = await supabase.from('color_test_results').insert([payload])
+        console.log(payload)
 
         if (error) throw error
 
         this.submitted = true
+        this.showDemo = true
       } catch (error) {
         console.error('Error submitting results:', error)
         alert('Failed to submit results. Please try again.')
@@ -296,6 +408,7 @@ export default {
   border-radius: 0.2em;
   margin-bottom: -0.2em;
 }
+
 .color-chip-cyan {
   display: inline-block;
   width: 1em;
@@ -347,7 +460,81 @@ export default {
   font-size: 1.2rem;
 }
 
+.about-content h3 {
+  font-size: 1.2rem;
+  margin-top: 1rem;
+}
+
 .about-content p {
   margin-bottom: 1rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: 'Cabin', sans-serif;
+  font-size: 1rem;
+  color: #333;
+  background-color: #fff;
+  appearance: none; /* Removes default styling in some browsers */
+  -webkit-appearance: none; /* For older versions of Safari */
+  -moz-appearance: none;
+}
+
+select.form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2rem;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+/* Style specifically for the language dropdown */
+#firstLanguage {
+  border: 2px solid #4a90e2;
+  transition: border-color 0.3s ease;
+}
+
+#firstLanguage:hover {
+  border-color: #2a70c2;
+}
+
+/* Ensure text inputs match select styling */
+input[type='text'].form-control {
+  border: 2px solid #4a90e2;
+}
+
+/* Style for the submit button */
+.submit-button-demo {
+  background-color: #4a90e2;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.submit-button-demo:hover {
+  background-color: #2a70c2;
 }
 </style>

@@ -3,7 +3,9 @@ export const MAX_ROUNDS = 7 // 2^6, hence max resolution of 1.
 // Version 0.0.2 implemented randomization of the probe color.
 // Version 0.0.3 implemented a GLM for determining the sigmoid parameters and a color mask.
 // Version 0.0.4 implemented the plot comparing to the population at the end.
-export const VERSION = '0.0.5'
+// Version 0.0.5 implemented the about screen.
+// Version 0.0.6 implemented the language and colorblindness options, and the local timestamp.
+export const VERSION = '0.0.6'
 export const SUPABASE_URL = 'https://agbofzcbkywbsojudbry.supabase.co'
 export const SUPABASE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYm9memNia3l3YnNvanVkYnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjM1OTg3NDgsImV4cCI6MjAzOTE3NDc0OH0.bDNQrtmRo38uENlroz1YcLaqR9bQEc-G5Lf0rNAukOI'
