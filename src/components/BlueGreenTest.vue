@@ -7,7 +7,7 @@
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
           <h1 v-else key="main" class="blue-green-test-title">
-            <span class="background-white">Is <i>my</i> blue <i>your</i> blue?</span>
+            <span class="background-white">Is <i>my</i> yellow <i>your</i> yellow?</span>
           </h1>
         </transition>
       </div>
@@ -21,29 +21,30 @@
         />
       </div>
       <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
-        <button @click="selectColor('blue')" class="blue-green-test-button blue-button grow-button">
-          This is blue
+        <button @click="selectColor('yellow')" class="blue-green-test-button blue-button grow-button">
+          This is yellow
         </button>
         <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
           Reset
         </button>
         <button
-          @click="selectColor('green')"
+          @click="selectColor('orange')"
           class="blue-green-test-button green-button grow-button"
         >
-          This is green
+          This is orange
         </button>
       </div>
       <div v-else class="blue-green-test-button-container two-buttons">
         <button
           @click="submitResults"
           class="blue-green-test-button submit-button grow-button"
-          :disabled="submitted"
+          :disabled=true
         >
           {{ submitted ? 'Submitted!' : 'Submit results' }}
         </button>
         <button
           @click="showAbout = true"
+          :disabled=true
           class="blue-green-test-button final-reset-button grow-button"
         >
           About
@@ -239,7 +240,7 @@ export default {
   data() {
     return {
       MAX_ROUNDS: MAX_ROUNDS,
-      currentHue: Math.random() > 0.5 ? 150 : 210,
+      currentHue: Math.random() > 0.5 ? 30 : 60,
       showInitialMessage: true,
       polarity: 0,
       rounds: 0,
@@ -299,7 +300,7 @@ export default {
       // Get the new probe value
       const { b, newProbe, polarity } = fitSigmoid(
         this.responses.map((r) => r.hue),
-        this.responses.map((r) => r.response === 'blue'),
+        this.responses.map((r) => r.response === 'yellow'),
         this.polarity,
         0.4
       )
@@ -307,7 +308,7 @@ export default {
       this.currentHue = newProbe
       this.rounds++
       if (this.rounds === MAX_ROUNDS) {
-        this.finalHue = 180 - b
+        this.finalHue = 45 - b
         this.currentHue = this.finalHue
         confetti()
       }
@@ -318,7 +319,7 @@ export default {
     },
     reset() {
       this.anonymousId = this.generateAnonymousId()
-      this.currentHue = Math.random() > 0.5 ? 150 : 210
+      this.currentHue = Math.random() > 0.5 ? 30 : 60
       this.rounds = 0
       this.finalHue = 0
       this.showInitialMessage = true
@@ -335,19 +336,19 @@ export default {
       )
     },
     async submitDemographics() {
-      try {
-        const { data, error } = await supabase.from('color_test_demo').insert([
-          {
-            anonymous_id: this.anonymousId,
-            first_language: this.firstLanguage,
-            color_blindness: this.colorBlindness
-          }
-        ])
-        this.showDemo = false
-      } catch (error) {
-        console.error('Error submitting demographics:', error)
-        alert('Failed to submit demographics. Please try again.')
-      }
+      // try {
+      //   const { data, error } = await supabase.from('color_test_demo').insert([
+      //     {
+      //       anonymous_id: this.anonymousId,
+      //       first_language: this.firstLanguage,
+      //       color_blindness: this.colorBlindness
+      //     }
+      //   ])
+      //   this.showDemo = false
+      // } catch (error) {
+      //   console.error('Error submitting demographics:', error)
+      //   alert('Failed to submit demographics. Please try again.')
+      // }
     },
     async submitResults() {
       this.gatherDeviceInfo()
@@ -369,10 +370,10 @@ export default {
           final_hue: this.finalHue,
           version: VERSION
         }
-        const { data, error } = await supabase.from('color_test_results').insert([payload])
+        // const { data, error } = await supabase.from('color_test_results').insert([payload])
         console.log(payload)
 
-        if (error) throw error
+        // if (error) throw error
 
         this.submitted = true
         this.showDemo = true

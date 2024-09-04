@@ -4,12 +4,12 @@
       <svg ref="svg" class="w-full h-96"></svg>
       <div class="absolute top-0 left-0 p-1">
         <div class="blue-green-test-result-color">
-          <p class="result-text bg-white bg-opacity-70 p-1 rounded"><i>Your</i> green</p>
+          <p class="result-text bg-white bg-opacity-70 p-1 rounded"><i>Your</i> orange</p>
         </div>
       </div>
       <div class="absolute top-0 right-0 p-1">
         <div class="blue-green-test-result-color">
-          <p class="result-text bg-white bg-opacity-70 p-1 rounded"><i>Your</i> blue</p>
+          <p class="result-text bg-white bg-opacity-70 p-1 rounded"><i>Your</i> yellow</p>
         </div>
       </div>
     </div>
@@ -17,18 +17,18 @@
       <p class="result-text">
         <i>Your</i> boundary is at hue {{ Math.round(userThreshold) }},
         <span v-if="greenInclusive > 0.55">
-          bluer than {{ Math.round(greenInclusive * 100) }}% of the population. For <i>you</i>,
-          turquoise
+          For <i>you</i>,
+          hue 45 (the mid point between yellow and orange)
           <span class="color-chip mr-1"></span>
-          is green.
+          is orange.
         </span>
         <span v-else-if="greenInclusive < 0.45">
-          greener than {{ Math.round((1 - greenInclusive) * 100) }}% of the population. For
-          <i>you</i>, turquoise
+          For
+          <i>you</i>, hue 45 (the midpoint between yellow and orange)
           <span class="color-chip mr-1"></span>
-          is blue.
+          is yellow.
         </span>
-        <span v-else> just like the population median. You're a true neutral. </span>
+        <span v-else> You're a true neutral. </span>
       </p>
     </div>
   </div>
@@ -73,8 +73,8 @@ export default {
       const innerWidth = width - margin.left - margin.right
       const innerHeight = height - margin.top - margin.bottom
 
-      let range_l = 155
-      let range_r = 205
+      let range_l = 31
+      let range_r = 59
       const x = d3.scaleLinear().domain([range_l, range_r]).range([0, innerWidth])
       const y = d3.scaleLinear().domain([0, 1]).range([innerHeight, 0])
 
@@ -245,7 +245,7 @@ svg {
   display: inline-block;
   width: 1em;
   height: 1em;
-  background-color: turquoise;
+  background-color: hsl(45, 100%, 50%);
   border: 2px solid black;
   border-radius: 0.2em;
   margin-bottom: -0.2em;
