@@ -1,59 +1,50 @@
 <template>
-  <div class="blue-green-test-wrapper">
-    <div :style="containerStyle" class="blue-green-test-container">
-      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-content">
+  <div class="color-wheel-test-wrapper">
+    <div :style="containerStyle" class="color-wheel-test-container">
+      <div v-if="!testCompleted" class="color-wheel-test-content">
         <transition name="fade-up" mode="out-in">
-          <h1 v-if="showInitialMessage" key="initial" class="blue-green-test-title">
+          <h1 v-if="showInitialMessage" key="initial" class="color-wheel-test-title">
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
-          <h1 v-else key="main" class="blue-green-test-title">
-            <span class="background-white">Is <i>my</i> blue <i>your</i> blue?</span>
+          <h1 v-else-if="currentColorPairBasedOnHue" key="main" class="color-wheel-test-title">
+            <span class="background-white">Is this {{ currentColorPairBasedOnHue.color1 }} or {{ currentColorPairBasedOnHue.color2 }}?</span>
           </h1>
+          <p v-if="!showInitialMessage && currentColorPairBasedOnHue" class="debug-text">
+  Debug: Actual color shown: {{ getColorNameForHue(currentHue) }}
+</p>
         </transition>
       </div>
-      <div v-else class="blue-green-test-content blue-green-test-result-screen">
-        <Results
-          :binPosition="binPosition"
-          :count="count"
-          :xCdf="xCdf"
-          :yCdf="yCdf"
-          :userThreshold="finalHue"
-        />
+      <div v-else class="color-wheel-test-content color-wheel-test-result-screen">
+        <Results :colorResults="colorResults" />
       </div>
-      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
-        <button @click="selectColor('blue')" class="blue-green-test-button blue-button grow-button">
-          This is blue
+      <div v-if="!testCompleted && currentColorPairBasedOnHue" class="color-wheel-test-button-container">
+        <button @click="selectColor(currentColorPairBasedOnHue.color1)" class="color-wheel-test-button grow-button">
+          {{ currentColorPairBasedOnHue.color1 }}
         </button>
-        <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
-          Reset
-        </button>
-        <button
-          @click="selectColor('green')"
-          class="blue-green-test-button green-button grow-button"
-        >
-          This is green
+        <button @click="selectColor(currentColorPairBasedOnHue.color2)" class="color-wheel-test-button grow-button">
+          {{ currentColorPairBasedOnHue.color2 }}
         </button>
       </div>
-      <div v-else class="blue-green-test-button-container two-buttons">
+      <div v-if="!testCompleted" class="color-wheel-test-button-container two-buttons">
         <button
           @click="submitResults"
-          class="blue-green-test-button submit-button grow-button"
+          class="color-wheel-test-button submit-button grow-button"
           :disabled="submitted"
         >
           {{ submitted ? 'Submitted!' : 'Submit results' }}
         </button>
         <button
           @click="showAbout = true"
-          class="blue-green-test-button final-reset-button grow-button"
+          class="color-wheel-test-button final-reset-button grow-button"
         >
           About
         </button>
-        <button @click="reset" class="blue-green-test-button final-reset-button grow-button">
+        <button @click="reset" class="color-wheel-test-button final-reset-button grow-button">
           Reset
         </button>
       </div>
     </div>
-    <div v-if="submitted && showDemo" class="blue-green-test-submitted-message about-popup">
+    <div v-if="submitted && showDemo" class="color-wheel-test-submitted-message about-popup">
       <div class="about-content">
         <button @click="showDemo = false" class="close-button">&times;</button>
         <h2>Thanks! Before you go...</h2>
@@ -160,20 +151,11 @@
           (hue, saturation, lightness) color space. Hue 120 is green, and hue 240 is blue. The test
           focuses on blue-green hues between 150 and 210. The test assumes that your responses
           between blue and green are represented by a sigmoid curve. It sequentially fits that
-          sigmoid curve to your responses:
-        </p>
-
-        <img src="@/assets/formula.svg" alt="Formula" />
-        <br />
-        <p>
-          This is equivalent to a logistic regression model. The test uses a maximum-a-posteriori
-          (MAP) estimation algorithm (specifically, a second order Newton method implemented in pure
-          JS, no calls to a backend) to fit the sigmoid curve to your responses, with a vague prior
-          on the scale and offset parameters. It uses the fitted curve to determine which color will
-          be presented next. It tries to be smart about where it samples new points, focusing on
-          regions where you're predicted to be intermediately confident in your responses. To
-          improve the validity of the results, it randomizes which points it samples, and uses a
-          noise mask to mitigate visual adaptation.
+          sigmoid curve to your responses, with a vague prior on the scale and offset parameters. It
+          uses the fitted curve to determine which color will be presented next. It tries to be
+          smart about where it samples new points, focusing on regions where you're predicted to be
+          intermediately confident in your responses. To improve the validity of the results, it
+          randomizes which points it samples, and uses a noise mask to mitigate visual adaptation.
         </p>
         <p>
           It's a curve fit, not a binary search. In theory, if you feel like you're guessing in the
@@ -239,7 +221,7 @@ export default {
   data() {
     return {
       MAX_ROUNDS: MAX_ROUNDS,
-      currentHue: Math.random() > 0.5 ? 150 : 210,
+      currentHue: 0,
       showInitialMessage: true,
       polarity: 0,
       rounds: 0,
@@ -260,7 +242,23 @@ export default {
       yCdf: Y_CDF,
       showAbout: false,
       showDemo: false,
-      anonymousId: this.generateAnonymousId()
+      anonymousId: this.generateAnonymousId(),
+      colorResults: [],
+      currentRound: 0,
+      firstLanguage: '',
+      colorBlindness: '',
+      COLOR_PAIRS: [
+        { color1: 'red', color2: 'orange', range: [0, 30] },
+        { color1: 'orange', color2: 'yellow', range: [30, 60] },
+        { color1: 'yellow', color2: 'green', range: [60, 120] },
+        { color1: 'green', color2: 'blue', range: [120, 240] },
+        { color1: 'blue', color2: 'purple', range: [240, 300] },
+        { color1: 'purple', color2: 'red', range: [300, 360] },
+      ],
+      currentColorPair: null,
+      testCompleted: false,
+      MAX_ROUNDS_PER_PAIR: 7,
+      currentPairRounds: 0
     }
   },
   computed: {
@@ -274,48 +272,147 @@ export default {
       return `hsl(${this.finalHue - 5}, 100%, 50%)`
     },
     containerStyle() {
-      if (this.rounds === MAX_ROUNDS) {
-        return {
-          backgroundColor: 'white'
-        }
+      if (this.testCompleted) {
+        return { backgroundColor: 'white' }
       } else if (this.showMask) {
         return {
-          backgroundColor: this.showMask ? 'transparent' : this.currentColor,
-          backgroundImage: this.showMask ? `url(${this.maskImageUrl})` : 'none',
+          backgroundColor: 'transparent',
+          backgroundImage: `url(${this.maskImageUrl})`,
           backgroundRepeat: 'repeat',
           backgroundSize: 'auto'
         }
       } else {
-        return {
-          backgroundColor: this.currentColor
-        }
+        return { backgroundColor: this.currentColor }
       }
+    },
+    isTestInProgress() {
+      return this.currentRound < this.COLOR_PAIRS.length
+    },
+    currentColorPairBasedOnHue() {
+      return this.COLOR_PAIRS.find(pair => 
+        this.currentHue >= pair.range[0] && this.currentHue <= pair.range[1]
+      ) || this.COLOR_PAIRS[0];
     }
   },
   methods: {
-    selectColor(color) {
-      this.responses.push({ hue: this.currentHue, response: color })
-
-      // Get the new probe value
-      const { b, newProbe, polarity } = fitSigmoid(
-        this.responses.map((r) => r.hue),
-        this.responses.map((r) => r.response === 'blue'),
-        this.polarity,
-        0.4
-      )
-      this.polarity = polarity == 1 ? -1 : 1
-      this.currentHue = newProbe
-      this.rounds++
-      if (this.rounds === MAX_ROUNDS) {
-        this.finalHue = 180 - b
-        this.currentHue = this.finalHue
-        confetti()
-      }
-      this.showMask = true
+    startTest() {
+      this.currentRound = 0
+      this.moveToNextColorPair()
+      this.testCompleted = false
+      this.showInitialMessage = true
+      console.log('Starting test')
       setTimeout(() => {
-        this.showMask = false
-      }, 200)
+        this.showInitialMessage = false
+      }, 2000)
     },
+
+    selectColor(color) {
+  console.log(`Selected color: ${color}, Current hue: ${this.currentHue}`);
+  this.responses.push({ hue: this.currentHue, response: color })
+
+  const { b, newProbe, polarity } = fitSigmoid(
+    this.responses.map((r) => r.hue),
+    this.responses.map((r) => r.response === this.currentColorPair.color2),
+    this.polarity,
+    0.4
+  )
+
+  this.polarity = polarity == 1 ? -1 : 1
+  this.currentHue = newProbe
+  this.currentPairRounds++
+
+  console.log(`New hue after fitSigmoid: ${this.currentHue}`);
+  console.log(`Current color pair before update: ${JSON.stringify(this.currentColorPair)}`);
+
+  this.updateCurrentColorPair();
+
+  console.log(`Current color pair after update: ${JSON.stringify(this.currentColorPair)}`);
+  console.log(`Current pair rounds: ${this.currentPairRounds}`);
+
+  if (this.currentPairRounds >= this.MAX_ROUNDS_PER_PAIR) {
+    this.finishColorPair(b)
+  } else {
+    this.showMask = true
+    setTimeout(() => {
+      this.showMask = false
+    }, 200)
+  }
+},
+
+finishColorPair(threshold) {
+  const midpoint = (this.currentColorPair.range[0] + this.currentColorPair.range[1]) / 2
+  const finalHue = midpoint - threshold
+
+  this.colorResults.push({
+    color1: this.currentColorPair.color1,
+    color2: this.currentColorPair.color2,
+    threshold: finalHue,
+    slope: this.calculateSlope(this.responses)
+  })
+
+  console.log(`Finished color pair: ${JSON.stringify(this.currentColorPair)}`);
+  console.log(`Final hue: ${finalHue}`);
+
+  this.moveToNextColorPair()
+},
+
+    moveToNextColorPair() {
+      this.currentRound++;
+      if (this.currentRound < this.COLOR_PAIRS.length) {
+        this.currentColorPair = this.COLOR_PAIRS[this.currentRound];
+        this.currentHue = this.getRandomHue(this.currentColorPair.range);
+        this.responses = [];
+        this.currentPairRounds = 0;
+        this.polarity = 0;
+        console.log(`Moved to next color pair: ${JSON.stringify(this.currentColorPair)}`);
+        console.log(`New current hue: ${this.currentHue}`);
+      } else {
+        this.finishTest();
+      }
+    },
+
+    getColorNameForHue(hue) {
+  const pair = this.COLOR_PAIRS.find(p => hue >= p.range[0] && hue < p.range[1]);
+  if (!pair) return 'unknown';
+  if (hue < (pair.range[0] + pair.range[1]) / 2) {
+    return pair.color1;
+  } else {
+    return pair.color2;
+  }
+},
+
+    updateCurrentColorPair() {
+  const newPair = this.currentColorPairBasedOnHue;
+  
+  console.log(`Updating current color pair. Current hue: ${this.currentHue}`);
+  console.log(`New pair based on hue: ${JSON.stringify(newPair)}`);
+  
+  if (newPair !== this.currentColorPair) {
+    console.log(`Changing color pair from ${JSON.stringify(this.currentColorPair)} to ${JSON.stringify(newPair)}`);
+    this.currentColorPair = newPair;
+    this.responses = [];
+    this.currentPairRounds = 0;
+    this.polarity = 0;
+  } else {
+    console.log(`Keeping current color pair: ${JSON.stringify(this.currentColorPair)}`);
+  }
+},
+
+    finishTest() {
+      confetti()
+      this.testCompleted = true
+    },
+
+    getRandomHue([min, max]) {
+      const hue = Math.random() * (max - min) + min;
+      console.log(`Generated random hue: ${hue} for range [${min}, ${max}]`);
+      return hue;
+    },
+
+    calculateSlope(responses) {
+      // Implement slope calculation based on responses
+    },
+
     reset() {
       this.anonymousId = this.generateAnonymousId()
       this.currentHue = Math.random() > 0.5 ? 150 : 210
@@ -329,11 +426,13 @@ export default {
         this.showInitialMessage = false
       }, 2000)
     },
+
     generateAnonymousId() {
       return (
         Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
       )
     },
+
     async submitDemographics() {
       try {
         const { data, error } = await supabase.from('color_test_demo').insert([
@@ -349,6 +448,7 @@ export default {
         alert('Failed to submit demographics. Please try again.')
       }
     },
+
     async submitResults() {
       this.gatherDeviceInfo()
       const now = new Date()
@@ -381,6 +481,7 @@ export default {
         alert('Failed to submit results. Please try again.')
       }
     },
+
     gatherDeviceInfo() {
       this.userAgent = navigator.userAgent
       this.screenWidth = window.screen.width
@@ -389,10 +490,14 @@ export default {
       this.pixelRatio = window.devicePixelRatio || 1
     }
   },
+
+  created() {
+    // Initialize currentColorPair when the component is created
+    this.currentColorPair = this.COLOR_PAIRS[0]
+  },
+
   mounted() {
-    setTimeout(() => {
-      this.showInitialMessage = false
-    }, 2000)
+    this.startTest()
   }
 }
 </script>
@@ -407,6 +512,14 @@ export default {
   border: 2px solid black;
   border-radius: 0.2em;
   margin-bottom: -0.2em;
+}
+
+.debug-text {
+  font-size: 1rem;
+  color: black;
+  background-color: white;
+  padding: 5px;
+  border-radius: 5px;
 }
 
 .color-chip-cyan {
