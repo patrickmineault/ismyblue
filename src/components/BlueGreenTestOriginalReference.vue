@@ -1,4 +1,4 @@
-<!-- ONLY CHANGE THIS FILE! -->
+<!-- KEEP THIS CODE INTACT. DO NOT CHANGE IT SINCE IT IS PERFECT! -->
 <template>
   <div class="blue-green-test-wrapper">
     <div :style="containerStyle" class="blue-green-test-container">
@@ -8,9 +8,7 @@
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
           <h1 v-else key="main" class="blue-green-test-title">
-            <span class="background-white"
-              >Is <i>my</i> {{ currentPair.color1 }} <i>your</i> {{ currentPair.color1 }}?</span
-            >
+            <span class="background-white">Is <i>my</i> blue <i>your</i> blue?</span>
           </h1>
         </transition>
       </div>
@@ -20,24 +18,21 @@
           :count="count"
           :xCdf="xCdf"
           :yCdf="yCdf"
-          :userThreshold="finalHues"
+          :userThreshold="finalHue"
         />
       </div>
       <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
-        <button
-          @click="selectColor(currentPair.color1)"
-          class="blue-green-test-button blue-button grow-button"
-        >
-          This is {{ currentPair.color1 }}
+        <button @click="selectColor('blue')" class="blue-green-test-button blue-button grow-button">
+          This is blue
         </button>
         <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
           Reset
         </button>
         <button
-          @click="selectColor(currentPair.color2)"
+          @click="selectColor('green')"
           class="blue-green-test-button green-button grow-button"
         >
-          This is {{ currentPair.color2 }}
+          This is green
         </button>
       </div>
       <div v-else class="blue-green-test-button-container two-buttons">
@@ -132,7 +127,7 @@
           People have different names for the colors they see.
           <a href="https://en.wikipedia.org/wiki/Sapir%E2%80%93Whorf_hypothesis" target="_blank"
             >Language can affect how we memorize and name colors</a
-          >. This is a color naming test designed to measure your personal color boundaries.
+          >. This is a color naming test designed to measure your personal blue-green boundary.
         </p>
         <h2>Test validity</h2>
         <p>
@@ -230,15 +225,6 @@ import maskImage from '@/assets/mask.png'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-const COLOR_PAIRS = [
-  { color1: 'red', color2: 'orange', hueRange: [0, 30] },
-  { color1: 'orange', color2: 'yellow', hueRange: [30, 60] },
-  { color1: 'yellow', color2: 'green', hueRange: [60, 120] },
-  { color1: 'green', color2: 'blue', hueRange: [120, 240] },
-  { color1: 'blue', color2: 'purple', hueRange: [240, 300] },
-  { color1: 'purple', color2: 'red', hueRange: [300, 360] }
-]
-
 export default {
   components: {
     Results
@@ -246,12 +232,12 @@ export default {
   data() {
     return {
       MAX_ROUNDS: MAX_ROUNDS,
-      currentHue: this.getInitialHue(COLOR_PAIRS[0].hueRange),
+      currentHue: Math.random() > 0.5 ? 150 : 210,
       showInitialMessage: true,
       polarity: 0,
       rounds: 0,
-      finalHues: COLOR_PAIRS.map(() => 0),
-      responses: COLOR_PAIRS.map(() => []),
+      finalHue: 0,
+      responses: [],
       userAgent: '',
       screenWidth: 0,
       screenHeight: 0,
@@ -269,17 +255,18 @@ export default {
       showDemo: false,
       anonymousId: this.generateAnonymousId(),
       testStartTime: null,
-      logData: [],
-      colorPairs: COLOR_PAIRS,
-      currentPairIndex: 0
+      logData: []
     }
   },
   computed: {
     currentColor() {
       return `hsl(${this.currentHue}, 100%, 50%)`
     },
-    currentPair() {
-      return this.colorPairs[this.currentPairIndex]
+    bluerColor() {
+      return `hsl(${this.finalHue + 5}, 100%, 50%)`
+    },
+    greenerColor() {
+      return `hsl(${this.finalHue - 5}, 100%, 50%)`
     },
     containerStyle() {
       if (this.rounds === MAX_ROUNDS) {
@@ -307,20 +294,18 @@ export default {
       console.log('Color selected:', {
         round: this.rounds + 1,
         currentHue: this.currentHue,
-        selectedColor: color,
-        currentPair: this.currentPair
+        selectedColor: color
       })
 
-      this.responses[this.currentPairIndex].push({ hue: this.currentHue, response: color })
+      this.responses.push({ hue: this.currentHue, response: color })
 
       // Get the new probe value
       const fitSigmoidStartTime = performance.now()
       const { a, b, newProbe, polarity } = fitSigmoid(
-        this.responses[this.currentPairIndex].map((r) => r.hue),
-        this.responses[this.currentPairIndex].map((r) => r.response === this.currentPair.color2),
+        this.responses.map((r) => r.hue),
+        this.responses.map((r) => r.response === 'blue'),
         this.polarity,
-        0.4,
-        this.currentPair.hueRange
+        0.4
       )
       const fitSigmoidEndTime = performance.now()
       const fitSigmoidDuration = fitSigmoidEndTime - fitSigmoidStartTime
@@ -330,6 +315,9 @@ export default {
       this.currentHue = newProbe
       this.rounds++
 
+      const roundEndTime = performance.now()
+      const roundDuration = roundEndTime - roundStartTime
+
       const roundData = {
         round: this.rounds,
         previousHue,
@@ -337,7 +325,7 @@ export default {
         response: color,
         newProbe,
         polarity: this.polarity,
-        roundDuration: performance.now() - roundStartTime,
+        roundDuration,
         fitSigmoidDuration,
         sigmoidParameters: { a, b }
       }
@@ -347,15 +335,10 @@ export default {
       console.log(`Round ${this.rounds} completed:`, roundData)
 
       if (this.rounds === MAX_ROUNDS) {
-        this.finalHues[this.currentPairIndex] =
-          (this.currentPair.hueRange[0] + this.currentPair.hueRange[1]) / 2 - b
-        this.currentPairIndex = (this.currentPairIndex + 1) % this.colorPairs.length
-        if (this.currentPairIndex === 0) {
-          this.completeTest()
-        } else {
-          this.currentHue = this.getInitialHue(this.currentPair.hueRange)
-          this.rounds = 0 // Reset rounds for the next color pair
-        }
+        this.finalHue = 180 - b
+        this.currentHue = this.finalHue
+        confetti()
+        this.logTestCompletion()
       }
 
       // Log color transition
@@ -373,13 +356,12 @@ export default {
     },
     reset() {
       this.anonymousId = this.generateAnonymousId()
-      this.currentPairIndex = 0
-      this.responses = this.colorPairs.map(() => [])
-      this.finalHues = this.colorPairs.map(() => 0)
-      this.currentHue = this.getInitialHue(this.currentPair.hueRange)
+      this.currentHue = Math.random() > 0.5 ? 150 : 210
       this.rounds = 0
+      this.finalHue = 0
       this.showInitialMessage = true
       this.submitted = false
+      this.responses = []
       this.showMask = false
       this.testStartTime = performance.now()
       this.logData = []
@@ -430,7 +412,7 @@ export default {
           timestamp: this.timestamp,
           local_timestamp: this.localTimestamp,
           responses: this.responses,
-          final_hues: this.finalHues,
+          final_hue: this.finalHue,
           version: VERSION,
           test_duration: performance.now() - this.testStartTime,
           log_data: this.logData
@@ -467,7 +449,7 @@ export default {
       const testDuration = testEndTime - this.testStartTime
       console.log('Test completed:', {
         totalRounds: this.rounds,
-        finalHues: this.finalHues,
+        finalHue: this.finalHue,
         testDuration,
         responses: this.responses,
         logData: this.logData,
@@ -476,14 +458,6 @@ export default {
         averageFitSigmoidDuration:
           this.logData.reduce((sum, round) => sum + round.fitSigmoidDuration, 0) / this.rounds
       })
-    },
-    getInitialHue(hueRange) {
-      return Math.random() > 0.5 ? hueRange[0] : hueRange[1]
-    },
-    completeTest() {
-      confetti()
-      this.logTestCompletion()
-      // Additional logic for completing the entire color wheel test
     }
   },
   mounted() {
