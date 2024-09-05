@@ -1,10 +1,10 @@
 <!-- ONLY CHANGE THIS FILE! -->
 <template>
-  <div class="color-wheel-test-wrapper">
-    <div :style="containerStyle" class="color-wheel-test-container">
-      <div v-if="!testCompleted" class="color-wheel-test-content">
+  <div class="blue-green-test-wrapper">
+    <div :style="containerStyle" class="blue-green-test-container">
+      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-content">
         <transition name="fade-up" mode="out-in">
-          <h1 v-if="showInitialMessage" key="initial" class="color-wheel-test-title">
+          <h1 v-if="showInitialMessage" key="initial" class="blue-green-test-title">
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
           <h1 v-else key="main" class="blue-green-test-title">
@@ -12,9 +12,6 @@
               >Is <i>my</i> {{ currentPair.color1 }} <i>your</i> {{ currentPair.color1 }}?</span
             >
           </h1>
-          <p v-if="!showInitialMessage && currentColorPairBasedOnHue" class="debug-text">
-            Debug: Actual color shown: {{ getColorNameForHue(currentHue) }}
-          </p>
         </transition>
       </div>
       <div v-else class="blue-green-test-content blue-green-test-result-screen">
@@ -43,26 +40,26 @@
           This is {{ currentPair.color2 }}
         </button>
       </div>
-      <div v-if="!testCompleted" class="color-wheel-test-button-container two-buttons">
+      <div v-else class="blue-green-test-button-container two-buttons">
         <button
           @click="submitResults"
-          class="color-wheel-test-button submit-button grow-button"
+          class="blue-green-test-button submit-button grow-button"
           :disabled="submitted"
         >
           {{ submitted ? 'Submitted!' : 'Submit results' }}
         </button>
         <button
           @click="showAbout = true"
-          class="color-wheel-test-button final-reset-button grow-button"
+          class="blue-green-test-button final-reset-button grow-button"
         >
           About
         </button>
-        <button @click="reset" class="color-wheel-test-button final-reset-button grow-button">
+        <button @click="reset" class="blue-green-test-button final-reset-button grow-button">
           Reset
         </button>
       </div>
     </div>
-    <div v-if="submitted && showDemo" class="color-wheel-test-submitted-message about-popup">
+    <div v-if="submitted && showDemo" class="blue-green-test-submitted-message about-popup">
       <div class="about-content">
         <button @click="showDemo = false" class="close-button">&times;</button>
         <h2>Thanks! Before you go...</h2>
@@ -169,11 +166,20 @@
           (hue, saturation, lightness) color space. Hue 120 is green, and hue 240 is blue. The test
           focuses on blue-green hues between 150 and 210. The test assumes that your responses
           between blue and green are represented by a sigmoid curve. It sequentially fits that
-          sigmoid curve to your responses, with a vague prior on the scale and offset parameters. It
-          uses the fitted curve to determine which color will be presented next. It tries to be
-          smart about where it samples new points, focusing on regions where you're predicted to be
-          intermediately confident in your responses. To improve the validity of the results, it
-          randomizes which points it samples, and uses a noise mask to mitigate visual adaptation.
+          sigmoid curve to your responses:
+        </p>
+
+        <img src="@/assets/formula.svg" alt="Formula" />
+        <br />
+        <p>
+          This is equivalent to a logistic regression model. The test uses a maximum-a-posteriori
+          (MAP) estimation algorithm (specifically, a second order Newton method implemented in pure
+          JS, no calls to a backend) to fit the sigmoid curve to your responses, with a vague prior
+          on the scale and offset parameters. It uses the fitted curve to determine which color will
+          be presented next. It tries to be smart about where it samples new points, focusing on
+          regions where you're predicted to be intermediately confident in your responses. To
+          improve the validity of the results, it randomizes which points it samples, and uses a
+          noise mask to mitigate visual adaptation.
         </p>
         <p>
           It's a curve fit, not a binary search. In theory, if you feel like you're guessing in the
@@ -276,42 +282,25 @@ export default {
       return this.colorPairs[this.currentPairIndex]
     },
     containerStyle() {
-      if (this.testCompleted) {
-        return { backgroundColor: 'white' }
+      if (this.rounds === MAX_ROUNDS) {
+        return {
+          backgroundColor: 'white'
+        }
       } else if (this.showMask) {
         return {
-          backgroundColor: 'transparent',
-          backgroundImage: `url(${this.maskImageUrl})`,
+          backgroundColor: this.showMask ? 'transparent' : this.currentColor,
+          backgroundImage: this.showMask ? `url(${this.maskImageUrl})` : 'none',
           backgroundRepeat: 'repeat',
           backgroundSize: 'auto'
         }
       } else {
-        return { backgroundColor: this.currentColor }
+        return {
+          backgroundColor: this.currentColor
+        }
       }
-    },
-    isTestInProgress() {
-      return this.currentRound < this.COLOR_PAIRS.length
-    },
-    currentColorPairBasedOnHue() {
-      return (
-        this.COLOR_PAIRS.find(
-          (pair) => this.currentHue >= pair.range[0] && this.currentHue <= pair.range[1]
-        ) || this.COLOR_PAIRS[0]
-      )
     }
   },
   methods: {
-    startTest() {
-      this.currentRound = 0
-      this.moveToNextColorPair()
-      this.testCompleted = false
-      this.showInitialMessage = true
-      console.log('Starting test')
-      setTimeout(() => {
-        this.showInitialMessage = false
-      }, 2000)
-    },
-
     selectColor(color) {
       const roundStartTime = performance.now()
 
@@ -400,13 +389,11 @@ export default {
         console.log('Initial message hidden')
       }, 2000)
     },
-
     generateAnonymousId() {
       return (
         Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
       )
     },
-
     async submitDemographics() {
       try {
         const { data, error } = await supabase.from('color_test_demo').insert([
@@ -422,7 +409,6 @@ export default {
         alert('Failed to submit demographics. Please try again.')
       }
     },
-
     async submitResults() {
       this.gatherDeviceInfo()
       const now = new Date()
@@ -462,7 +448,6 @@ export default {
         alert('Failed to submit results. Please try again.')
       }
     },
-
     gatherDeviceInfo() {
       this.userAgent = navigator.userAgent
       this.screenWidth = window.screen.width
@@ -522,14 +507,6 @@ export default {
   border: 2px solid black;
   border-radius: 0.2em;
   margin-bottom: -0.2em;
-}
-
-.debug-text {
-  font-size: 1rem;
-  color: black;
-  background-color: white;
-  padding: 5px;
-  border-radius: 5px;
 }
 
 .color-chip-cyan {

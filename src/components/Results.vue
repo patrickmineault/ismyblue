@@ -1,12 +1,34 @@
 <template>
   <div class="results-container">
     <div class="svg-container">
-      <svg ref="colorWheel" class="color-wheel"></svg>
-      <svg ref="sigmoids" class="sigmoids"></svg>
+      <svg ref="svg" class="w-full h-96"></svg>
+      <div class="absolute top-0 left-0 p-1">
+        <div class="blue-green-test-result-color">
+          <p class="result-text bg-white bg-opacity-70 p-1 rounded"><i>Your</i> green</p>
+        </div>
+      </div>
+      <div class="absolute top-0 right-0 p-1">
+        <div class="blue-green-test-result-color">
+          <p class="result-text bg-white bg-opacity-70 p-1 rounded"><i>Your</i> blue</p>
+        </div>
+      </div>
     </div>
-    <div class="results-text bg-white p-4">
-      <p v-for="(result, index) in colorResults" :key="index" class="result-text">
-        Your {{ result.color1 }}-{{ result.color2 }} boundary is at hue {{ Math.round(result.threshold) }}.
+    <div class="blue-green-test-result-text w-full mt-0 bg-white">
+      <p class="result-text">
+        <i>Your</i> boundary is at hue {{ Math.round(userThreshold) }},
+        <span v-if="greenInclusive > 0.55">
+          bluer than {{ Math.round(greenInclusive * 100) }}% of the population. For <i>you</i>,
+          turquoise
+          <span class="color-chip mr-1"></span>
+          is green.
+        </span>
+        <span v-else-if="greenInclusive < 0.45">
+          greener than {{ Math.round((1 - greenInclusive) * 100) }}% of the population. For
+          <i>you</i>, turquoise
+          <span class="color-chip mr-1"></span>
+          is blue.
+        </span>
+        <span v-else> just like the population median. You're a true neutral. </span>
       </p>
     </div>
   </div>
@@ -17,149 +39,215 @@ import * as d3 from 'd3'
 
 export default {
   props: {
-    colorResults: Array, // Array of objects with color boundaries and thresholds
+    binPosition: Array,
+    count: Array,
+    xCdf: Array,
+    yCdf: Array,
+    userThreshold: Number
+  },
+  computed: {
+    currentColor() {
+      return `hsl(${this.userThreshold}, 100%, 50%)`
+    },
+    greenInclusive() {
+      const index = this.xCdf.findIndex((value) => value > this.userThreshold)
+      const greenInclusive = index !== -1 ? this.yCdf[index] : 1
+      return greenInclusive
+    }
   },
   mounted() {
-    this.createColorWheel()
-    this.createSigmoidPlots()
+    this.createPlot()
   },
   methods: {
-    createColorWheel() {
-      const svg = d3.select(this.$refs.colorWheel)
-      // Clear existing content
-      svg.selectAll('*').remove()
-
-      const width = this.$refs.colorWheel.clientWidth
-      const height = this.$refs.colorWheel.clientHeight
-      const radius = Math.min(width, height) / 2
-
-      const g = svg.append('g')
-        .attr('transform', `translate(${width/2},${height/2})`)
-
-      // Create color scale
-      const colorScale = d3.scaleSequential(d3.interpolateRainbow)
-        .domain([0, 360])
-
-      // Create arcs for each hue
-      const arc = d3.arc()
-        .innerRadius(0)
-        .outerRadius(radius)
-
-      const arcs = g.selectAll('path')
-        .data(d3.range(360))
-        .enter().append('path')
-        .attr('fill', d => colorScale(d))
-        .attr('d', d => arc({
-          startAngle: (d * Math.PI) / 180,
-          endAngle: ((d + 1) * Math.PI) / 180
-        }))
-
-      // Add boundary lines
-      this.colorResults.forEach(result => {
-        const angle = (result.threshold * Math.PI) / 180
-        g.append('line')
-          .attr('x1', 0)
-          .attr('y1', 0)
-          .attr('x2', radius * Math.cos(angle))
-          .attr('y2', radius * Math.sin(angle))
-          .attr('stroke', 'black')
-          .attr('stroke-width', 2)
-      })
+    handleResize() {
+      this.createPlot()
     },
-    createSigmoidPlots() {
-      const svg = d3.select(this.$refs.sigmoids)
-      // Clear existing content
+    createPlot() {
+      const svg = d3.select(this.$refs.svg)
+      // Clear the svg on resize.
       svg.selectAll('*').remove()
 
-      const width = this.$refs.sigmoids.clientWidth
-      const height = this.$refs.sigmoids.clientHeight
-      const margin = { top: 20, right: 20, bottom: 30, left: 40 }
+      const width = this.$refs.svg.clientWidth
+      const height = this.$refs.svg.clientHeight
+      const margin = { top: 0, right: 0, bottom: 0, left: 0 }
       const innerWidth = width - margin.left - margin.right
       const innerHeight = height - margin.top - margin.bottom
 
-      const x = d3.scaleLinear().range([0, innerWidth])
-      const y = d3.scaleLinear().range([innerHeight, 0])
+      let range_l = 155
+      let range_r = 205
+      const x = d3.scaleLinear().domain([range_l, range_r]).range([0, innerWidth])
+      const y = d3.scaleLinear().domain([0, 1]).range([innerHeight, 0])
 
-      const g = svg.append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`)
+      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
 
-      // Create a sigmoid function
-      const sigmoid = (x, threshold, slope) => 1 / (1 + Math.exp(-slope * (x - threshold)))
+      // Create gradient background
+      const defs = svg.append('defs')
+      const gradient = defs
+        .append('linearGradient')
+        .attr('id', 'hue-gradient')
+        .attr('x1', '0%')
+        .attr('y1', '0%')
+        .attr('x2', '100%')
+        .attr('y2', '0%')
 
-      // Plot sigmoids for each color boundary
-      this.colorResults.forEach((result, index) => {
-        const data = d3.range(0, 360, 1).map(d => ({
-          x: d,
-          y: sigmoid(d, result.threshold, result.slope)
-        }))
+      for (let i = range_l; i <= range_r; i++) {
+        const hue = i
+        gradient
+          .append('stop')
+          .attr('offset', `${((i - range_l) / (range_r - range_l)) * 100}%`)
+          .attr('stop-color', `hsl(${hue}, 100%, 50%)`)
+      }
 
-        const line = d3.line()
-          .x(d => x(d.x))
-          .y(d => y(d.y))
+      g.append('rect')
+        .attr('width', innerWidth)
+        .attr('height', innerHeight)
+        .attr('fill', 'url(#hue-gradient)')
 
-        g.append('path')
-          .datum(data)
-          .attr('fill', 'none')
-          .attr('stroke', d3.schemeCategory10[index % 10])
-          .attr('stroke-width', 2)
-          .attr('d', line)
-      })
+      // Create line generator
+      const line = d3
+        .line()
+        .x((d) => x(d[0]))
+        .y((d) => y(d[1]))
+
+      // Create path for CDF line
+      const path = g
+        .append('path')
+        .datum(d3.zip(this.xCdf, this.yCdf))
+        .attr('fill', 'none')
+        .attr('stroke', 'black')
+        .attr('stroke-width', 1)
+        .attr('d', line)
+
+      // Calculate the start and end points for clipping
+      const startX = x(range_l)
+      const endX = x(range_r)
+
+      // Create a clip path
+      const clipPath = defs.append('clipPath').attr('id', 'gradient-clip')
+
+      clipPath
+        .append('rect')
+        .attr('x', startX)
+        .attr('y', 0)
+        .attr('width', endX - startX)
+        .attr('height', innerHeight)
+
+      // Add vertical line for user threshold
+      const userThresholdX = x(this.userThreshold)
+      const thresh = g
+        .append('line')
+        .attr('x1', userThresholdX)
+        .attr('x2', userThresholdX)
+        .attr('y1', 0)
+        .attr('y2', innerHeight)
+        .attr('stroke', 'black')
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '5,5')
+
+      // Apply the clip path to the CDF line
+      path.attr('clip-path', 'url(#gradient-clip)')
+
+      // Animate the line
+      const length = path.node().getTotalLength()
+      path
+        .attr('stroke-dasharray', length + ' ' + length)
+        .attr('stroke-dashoffset', length)
+        .transition()
+        .duration(2000)
+        .ease(d3.easeLinear)
+        .attr('stroke-dashoffset', 0)
+
+      // Animate the threshold line
+
+      thresh
+        .attr('y2', 0)
+        .transition()
+        .delay(2000) // Start after the path animation
+        .duration(1000)
+        .ease(d3.easeLinear)
+        .attr('y2', innerHeight)
 
       // Add axes
-      g.append('g')
-        .attr('transform', `translate(0,${innerHeight})`)
-        .call(d3.axisBottom(x))
+      g.append('g').attr('transform', `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5))
 
-      g.append('g')
-        .call(d3.axisLeft(y))
+      g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.0%')))
 
-      // Add legend
-      const legend = svg.append('g')
-        .attr('font-family', 'sans-serif')
-        .attr('font-size', 10)
+      // Add labels
+      svg
+        .append('text')
+        .attr('x', width / 2)
+        .attr('y', height - 5)
+        .attr('text-anchor', 'middle')
+
+      svg
+        .append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('x', -height / 2)
+        .attr('y', 15)
+        .attr('text-anchor', 'middle')
+
+      // Add the label
+      const label = svg
+        .append('text')
+        .attr('x', width - margin.right - 10)
+        .attr('y', height - margin.bottom - 10)
         .attr('text-anchor', 'end')
-        .selectAll('g')
-        .data(this.colorResults)
-        .enter().append('g')
-        .attr('transform', (d, i) => `translate(0,${i * 20})`)
+        .attr('font-size', '12px')
+        .attr('fill', 'black')
+        .text('threshold distribution')
 
-      legend.append('rect')
-        .attr('x', width - 19)
-        .attr('width', 19)
-        .attr('height', 19)
-        .attr('fill', (d, i) => d3.schemeCategory10[i % 10])
+      const bbox = label.node().getBBox()
+      // Add a small line
+      svg
+        .append('line')
+        .attr('x1', bbox.x - 30)
+        .attr('y1', bbox.y + 8)
+        .attr('x2', bbox.x - 10)
+        .attr('y2', bbox.y + 8)
+        .attr('stroke', 'black')
+        .attr('stroke-width', 3)
 
-      legend.append('text')
-        .attr('x', width - 24)
-        .attr('y', 9.5)
-        .attr('dy', '0.32em')
-        .text(d => `${d.color1}-${d.color2}`)
+      window.addEventListener('resize', this.handleResize)
     }
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize)
   }
 }
 </script>
 
+<style src="./BlueGreenTest.css" scoped />
 <style scoped>
 .results-container {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
+  padding: 0;
+  margin: 0;
 }
 
 .svg-container {
-  display: flex;
-  flex-direction: row;
-  height: 70%;
+  flex-grow: 1;
+  position: relative;
+  width: 100%;
 }
 
-.color-wheel, .sigmoids {
-  width: 50%;
+svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
 }
 
-.results-text {
-  height: 30%;
-  overflow-y: auto;
+.color-chip {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: turquoise;
+  border: 2px solid black;
+  border-radius: 0.2em;
+  margin-bottom: -0.2em;
 }
 </style>
