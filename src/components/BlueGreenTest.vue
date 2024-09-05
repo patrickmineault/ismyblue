@@ -214,16 +214,8 @@
 
 <script>
 import { createClient } from '@supabase/supabase-js'
-import {
-  MAX_ROUNDS,
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  VERSION,
-  BIN_POSITION,
-  BIN_COUNT,
-  X_CDF,
-  Y_CDF
-} from '@/config'
+import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/config'
+import { SUPABASE_URL, SUPABASE_KEY } from '@/keys'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
@@ -353,7 +345,11 @@ export default {
       this.gatherDeviceInfo()
       const now = new Date()
       this.timestamp = now.toISOString()
-      this.localTimestamp = now.toLocaleString()
+
+      // Create a local timestamp by adjusting for timezone offset
+      const offsetMs = now.getTimezoneOffset() * 60 * 1000
+      const localDate = new Date(now.getTime() - offsetMs)
+      this.localTimestamp = localDate.toISOString()
 
       try {
         const payload = {

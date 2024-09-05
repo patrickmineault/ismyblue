@@ -5,10 +5,8 @@ export const MAX_ROUNDS = 7 // 2^6, hence max resolution of 1.
 // Version 0.0.4 implemented the plot comparing to the population at the end.
 // Version 0.0.5 implemented the about screen.
 // Version 0.0.6 implemented the language and colorblindness options, and the local timestamp.
-export const VERSION = '0.0.6'
-export const SUPABASE_URL = 'https://agbofzcbkywbsojudbry.supabase.co'
-export const SUPABASE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYm9memNia3l3YnNvanVkYnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjM1OTg3NDgsImV4cCI6MjAzOTE3NDc0OH0.bDNQrtmRo38uENlroz1YcLaqR9bQEc-G5Lf0rNAukOI'
+// Version 0.0.7 fixed the timestamp localization and moved the keys into a separate file.
+export const VERSION = '0.0.7'
 export const BIN_POSITION = [
   134.301141318471, 153.503134757856, 158.56843732322, 160.302303286645, 162.514185616824,
   163.703518721884, 164.344468743918, 164.462960967657, 165.598525868342, 166.183872810368,
