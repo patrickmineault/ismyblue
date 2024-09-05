@@ -16,11 +16,11 @@
       </div>
       <div v-else class="blue-green-test-content blue-green-test-result-screen">
         <Results
-          :binPosition="binPosition"
-          :count="count"
-          :xCdf="xCdf"
-          :yCdf="yCdf"
-          :userThreshold="finalHues"
+          :binPositions="binPositions"
+          :counts="counts"
+          :xCdfs="xCdfs"
+          :yCdfs="yCdfs"
+          :userThresholds="finalHues"
         />
       </div>
       <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
@@ -220,7 +220,7 @@
 
 <script>
 import { createClient } from '@supabase/supabase-js'
-import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/keys'
+import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF, COLOR_PAIRS } from '@/keys'
 import { SUPABASE_URL, SUPABASE_KEY } from '@/keys'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
@@ -229,15 +229,6 @@ import { fitSigmoid } from '@/utils/glmUtils'
 import maskImage from '@/assets/mask.png'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-
-const COLOR_PAIRS = [
-  { color1: 'red', color2: 'orange', hueRange: [0, 30] },
-  { color1: 'orange', color2: 'yellow', hueRange: [30, 60] },
-  { color1: 'yellow', color2: 'green', hueRange: [60, 120] },
-  { color1: 'green', color2: 'blue', hueRange: [120, 240] },
-  { color1: 'blue', color2: 'purple', hueRange: [240, 300] },
-  { color1: 'purple', color2: 'red', hueRange: [300, 360] }
-]
 
 export default {
   components: {
@@ -261,10 +252,10 @@ export default {
       submitted: false,
       showMask: false,
       maskImageUrl: maskImage,
-      binPosition: BIN_POSITION,
-      count: BIN_COUNT,
-      xCdf: X_CDF,
-      yCdf: Y_CDF,
+      binPositions: COLOR_PAIRS.map(() => BIN_POSITION),
+      counts: COLOR_PAIRS.map(() => BIN_COUNT),
+      xCdfs: COLOR_PAIRS.map(() => X_CDF),
+      yCdfs: COLOR_PAIRS.map(() => Y_CDF),
       showAbout: false,
       showDemo: false,
       anonymousId: this.generateAnonymousId(),
@@ -483,7 +474,19 @@ export default {
     completeTest() {
       confetti()
       this.logTestCompletion()
-      // Additional logic for completing the entire color wheel test
+      // Ensure all finalHues are set before showing results
+      this.finalHues = this.colorPairs.map((pair, index) => {
+        const midpoint = (pair.hueRange[0] + pair.hueRange[1]) / 2
+        const responses = this.responses[index]
+        const { b } = fitSigmoid(
+          responses.map((r) => r.hue),
+          responses.map((r) => r.response === pair.color2),
+          0,
+          0.4,
+          pair.hueRange
+        )
+        return midpoint - b
+      })
     }
   },
   mounted() {
