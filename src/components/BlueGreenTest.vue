@@ -8,9 +8,20 @@
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
           <h1 v-else key="main" class="blue-green-test-title">
-            <span class="background-white"
-              >Is <i>my</i> {{ currentPair.color1 }} <i>your</i> {{ currentPair.color1 }}?</span
-            >
+            <span class="background-white">
+              Is <i>my </i> 
+              <GlitchText 
+                :text="currentPair.color1" 
+                :alternateText="currentPair.color2" 
+                :glitchInterval="7000"
+              />
+              <i> your </i> 
+              <GlitchText 
+                :text="currentPair.color1" 
+                :alternateText="currentPair.color2" 
+                :glitchInterval="8000"
+              />?
+            </span>
           </h1>
         </transition>
       </div>
@@ -25,19 +36,19 @@
       </div>
       <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
         <button
-          @click="selectColor(currentPair.color1)"
+          @click="selectColor(buttonOrder[0])"
           class="blue-green-test-button blue-button grow-button"
         >
-          This is {{ currentPair.color1 }}
+          This is {{ buttonOrder[0] }}
         </button>
         <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
           Reset
         </button>
         <button
-          @click="selectColor(currentPair.color2)"
+          @click="selectColor(buttonOrder[1])"
           class="blue-green-test-button green-button grow-button"
         >
-          This is {{ currentPair.color2 }}
+          This is {{ buttonOrder[1] }}
         </button>
       </div>
       <div v-else class="blue-green-test-button-container two-buttons">
@@ -221,18 +232,20 @@
 <script>
 import { createClient } from '@supabase/supabase-js'
 import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF, COLOR_PAIRS } from '@/keys'
-import { SUPABASE_URL, SUPABASE_KEY } from '@/keys'
+import { SUPABASE_URL, SUPABASE_KEY } from '@/secretkeys'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
 
 import maskImage from '@/assets/mask.png'
+import GlitchText from './GlitchText.vue'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 export default {
   components: {
-    Results
+    Results,
+    GlitchText
   },
   data() {
     return {
@@ -279,8 +292,8 @@ export default {
         }
       } else if (this.showMask) {
         return {
-          backgroundColor: this.showMask ? 'transparent' : this.currentColor,
-          backgroundImage: this.showMask ? `url(${this.maskImageUrl})` : 'none',
+          backgroundColor: 'transparent',
+          backgroundImage: `url(${this.maskImageUrl})`,
           backgroundRepeat: 'repeat',
           backgroundSize: 'auto'
         }
@@ -289,6 +302,11 @@ export default {
           backgroundColor: this.currentColor
         }
       }
+    },
+    buttonOrder() {
+      return this.currentPairIndex % 2 === 0
+        ? [this.currentPair.color1, this.currentPair.color2]
+        : [this.currentPair.color2, this.currentPair.color1];
     }
   },
   methods: {
@@ -302,7 +320,10 @@ export default {
         currentPair: this.currentPair
       })
 
-      this.responses[this.currentPairIndex].push({ hue: this.currentHue, response: color })
+      // Determine which color in the pair was actually selected
+      const actualSelectedColor = this.currentPair.color1 === color ? this.currentPair.color1 : this.currentPair.color2
+
+      this.responses[this.currentPairIndex].push({ hue: this.currentHue, response: actualSelectedColor })
 
       // Get the new probe value
       const fitSigmoidStartTime = performance.now()
@@ -325,7 +346,7 @@ export default {
         round: this.rounds,
         previousHue,
         newHue: this.currentHue,
-        response: color,
+        response: actualSelectedColor,
         newProbe,
         polarity: this.polarity,
         roundDuration: performance.now() - roundStartTime,
@@ -489,6 +510,7 @@ export default {
       })
     }
   },
+  GlitchText,
   mounted() {
     this.testStartTime = performance.now()
     console.log('Test started')
@@ -639,5 +661,27 @@ input[type='text'].form-control {
 
 .submit-button-demo:hover {
   background-color: #2a70c2;
+}
+.blue-green-test-title {
+  position: relative;
+}
+
+.background-white {
+  position: relative;
+  z-index: 1;
+}
+
+.glitch-container {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
 }
 </style>

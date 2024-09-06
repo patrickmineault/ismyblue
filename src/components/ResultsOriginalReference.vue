@@ -1,5 +1,8 @@
+<!-- This is the original reference implementation of the results screen. It is used to compare the new implementation to the old one. DO NOT CHANGE THIS FILE. -->
 <template>
   <div class="results-container">
+    <div class="color-wheel-container">
+      <div v-for="(pair, index) in colorPairs" :key="index" class="color-pair-section">
     <div class="svg-container">
       <svg ref="svg" class="w-full h-96"></svg>
       <div class="absolute top-0 left-0 p-1">

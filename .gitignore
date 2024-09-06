@@ -33,4 +33,4 @@ coverage
 .netlify
 
 analysis/.env
-src/keys.js
+src/secretkeys.js

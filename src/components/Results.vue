@@ -1,34 +1,36 @@
 <template>
   <div class="results-container">
-    <div v-for="(pair, index) in colorPairs" :key="index" class="result-section">
+    <div v-for="(pair, index) in colorPairs" :key="index" class="blue-green-test-result-screen">
       <div class="svg-container">
         <svg :ref="`svg${index}`" class="w-full h-96"></svg>
         <div class="absolute top-0 left-0 p-1">
-          <div class="result-color">
+          <div class="blue-green-test-result-color">
             <p class="result-text bg-white bg-opacity-70 p-1 rounded">
               <i>Your</i> {{ pair.color1 }}
             </p>
           </div>
         </div>
         <div class="absolute top-0 right-0 p-1">
-          <div class="result-color">
+          <div class="blue-green-test-result-color">
             <p class="result-text bg-white bg-opacity-70 p-1 rounded">
               <i>Your</i> {{ pair.color2 }}
             </p>
           </div>
         </div>
       </div>
-      <div class="result-text w-full mt-0 bg-white">
+      <div class="blue-green-test-result-text w-full mt-0 bg-white">
         <p class="result-text">
           <i>Your</i> {{ pair.color1 }}-{{ pair.color2 }} boundary is at hue
           {{ Math.round(userThresholds[index]) }},
           <span v-if="inclusivePercentages[index] > 0.55">
             more {{ pair.color2 }} than {{ Math.round(inclusivePercentages[index] * 100) }}% of the
-            population.
+            population. For <i>you</i>, the middle color is 
+            <span class="color-chip" :style="{ backgroundColor: `hsl(${Math.round(userThresholds[index])}, 100%, 50%)` }"></span> .
           </span>
           <span v-else-if="inclusivePercentages[index] < 0.45">
             more {{ pair.color1 }} than {{ Math.round((1 - inclusivePercentages[index]) * 100) }}%
-            of the population.
+            of the population. For <i>you</i>, the middle color is 
+            <span class="color-chip" :style="{ backgroundColor: `hsl(${Math.round(userThresholds[index])}, 100%, 50%)`  }"></span> .
           </span>
           <span v-else>
             just like the population median. You're a true neutral for this pair.
@@ -219,6 +221,10 @@ export default {
         .attr('y2', bbox.y + 8)
         .attr('stroke', 'black')
         .attr('stroke-width', 3)
+    },
+    getMiddleColor(pair) {
+      const middleHue = (pair.hueRange[0] + pair.hueRange[1]) / 2
+      return `hsl(${middleHue}, 100%, 50%)`
     }
   },
   beforeUnmount() {
@@ -227,6 +233,7 @@ export default {
 }
 </script>
 
+<style src="./BlueGreenTest.css" scoped />
 <style scoped>
 .results-container {
   display: flex;
@@ -237,11 +244,8 @@ export default {
   overflow-y: auto;
 }
 
-.result-section {
-  margin-bottom: 2rem;
-}
-
 .svg-container {
+  flex-grow: 1;
   position: relative;
   width: 100%;
   height: 24rem;
@@ -255,8 +259,12 @@ svg {
   height: 100%;
 }
 
-.result-text {
-  padding: 1rem;
-  background-color: white;
+.color-chip {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid black;
+  border-radius: 0.2em;
+  margin-bottom: -0.2em;
 }
 </style>
