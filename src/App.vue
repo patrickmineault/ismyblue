@@ -11,8 +11,6 @@ export default {
     ColorTest
   }
 }
-console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL.substring(0, 10) + '...')
-console.log('VITE_SUPABASE_KEY:', import.meta.env.VITE_SUPABASE_KEY.substring(0, 10) + '...')
 </script>
 
 <style>
