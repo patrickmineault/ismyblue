@@ -1,11 +1,11 @@
-.blue-green-test-wrapper {
+.color-test-wrapper {
   width: 100vw !important;
   max-width: none !important;
   height: 100dvh;
   overflow: hidden;
 }
 
-.blue-green-test-container {
+.color-test-container {
   width: 100% !important;
   max-width: none !important;
   height: 100%;
@@ -14,7 +14,7 @@
   justify-content: space-between;
 }
 
-.blue-green-test-content {
+.color-test-content {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -22,9 +22,10 @@
   justify-content: center;
   width: 100% !important;
   max-width: none !important;
+  overflow: hidden;
 }
 
-.blue-green-test-title {
+.color-test-title {
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 1rem;
@@ -33,16 +34,15 @@
   width: 100%;
 }
 
-.blue-green-test-result-screen {
+.color-test-result-screen {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  width: 100% !important;
-  max-width: none !important;
-  height: 100%;
+  overflow: hidden;
 }
 
-.blue-green-test-result-color {
+.color-test-result-color {
   flex: 1;
   display: flex;
   align-items: center;
@@ -51,7 +51,7 @@
   padding: 1rem;
 }
 
-.blue-green-test-result-text {
+.color-test-result-text {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -72,7 +72,7 @@
   font-size: 1.5rem;
 }
 
-.blue-green-test-button-container {
+.color-test-button-container {
   width: 100%;
   height: 60px;
   position: relative;
@@ -81,7 +81,7 @@
   justify-content: space-between;
 }
 
-.blue-green-test-button {
+.color-test-button {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 1rem;
@@ -105,24 +105,24 @@
   border-left: 1px solid white;
 }
 
-.blue-green-test-button:disabled {
+.color-test-button:disabled {
   cursor: not-allowed;
   background-color: #222;
 }
 
-.blue-green-test-button:focus {
+.color-test-button:focus {
   outline: none;
 }
 
-.blue-green-test-button:focus-visible {
+.color-test-button:focus-visible {
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 1);
 }
 
-.three-buttons .blue-green-test-button {
+.three-buttons .color-test-button {
   width: 33.3333%;
 }
 
-.two-buttons .blue-green-test-button {
+.two-buttons .color-test-button {
   width: 50%;
 }
 
@@ -138,24 +138,24 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .blue-green-test-button:hover:not(:disabled) {
+  .color-test-button:hover:not(:disabled) {
     box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 1);
   }
 }
 
 @media (hover: none) {
-  .blue-green-test-button:hover {
+  .color-test-button:hover {
     box-shadow: none;
   }
 }
 
-.blue-green-test-button:active:not(:disabled) {
+.color-test-button:active:not(:disabled) {
   box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 1);
   transition: box-shadow 0.1s ease;
 }
 
 @media (min-width: 1024px) {
-  .blue-green-test-wrapper {
+  .color-test-wrapper {
     position: fixed;
     top: 0;
     left: 0;
@@ -239,6 +239,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .svg-container {
@@ -247,7 +248,8 @@
   height: 70%;
 }
 
-.color-wheel, .sigmoids {
+.color-wheel,
+.sigmoids {
   width: 50%;
   height: 100%;
 }
@@ -258,4 +260,59 @@
   padding: 1rem;
   background-color: white;
   color: black;
+}
+
+.results-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.blue-green-test-result-screen {
+  margin-bottom: 1rem;
+}
+
+.svg-container {
+  width: 100%;
+  height: 300px; /* Adjust this value as needed */
+}
+
+.blue-green-test-result-text {
+  margin-top: 1rem;
+}
+
+.sticky-buttons {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  padding: 1rem;
+  border-top: 1px solid #ccc;
+}
+
+.floating-actions {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.floating-button {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.floating-button:hover {
+  background-color: #2a70c2;
 }

@@ -1,76 +1,76 @@
 <!-- ONLY CHANGE THIS FILE! -->
 <template>
-  <div class="blue-green-test-wrapper">
-    <div :style="containerStyle" class="blue-green-test-container">
-      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-content">
+  <div class="color-test-wrapper">
+    <div :style="containerStyle" class="color-test-container">
+      <div v-if="rounds < MAX_ROUNDS" class="color-test-content">
         <transition name="fade-up" mode="out-in">
-          <h1 v-if="showInitialMessage" key="initial" class="blue-green-test-title">
+          <h1 v-if="showInitialMessage" key="initial" class="color-test-title">
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
-          <h1 v-else key="main" class="blue-green-test-title">
+          <h1 v-else key="main" class="color-test-title">
             <span class="background-white">
-              Is <i>my </i> 
-              <GlitchText 
-                :text="currentPair.color1" 
-                :alternateText="currentPair.color2" 
+              Is <i>my </i>
+              <GlitchText
+                :text="currentPair.color1"
+                :alternateText="currentPair.color2"
                 :glitchInterval="7000"
               />
-              <i> your </i> 
-              <GlitchText 
-                :text="currentPair.color1" 
-                :alternateText="currentPair.color2" 
+              <i> your </i>
+              <GlitchText
+                :text="currentPair.color1"
+                :alternateText="currentPair.color2"
                 :glitchInterval="8000"
               />?
             </span>
           </h1>
         </transition>
       </div>
-      <div v-else class="blue-green-test-content blue-green-test-result-screen">
+      <div v-else class="color-test-content color-test-result-screen">
         <Results
           :binPositions="binPositions"
           :counts="counts"
           :xCdfs="xCdfs"
           :yCdfs="yCdfs"
           :userThresholds="finalHues"
+          :submitted="submitted"
+          :aggregateData="aggregateData"
+          @submit-results="submitResults"
+          @show-about="showAbout = true"
+          @reset="reset"
         />
       </div>
-      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
+      <div v-if="rounds < MAX_ROUNDS" class="color-test-button-container three-buttons">
         <button
           @click="selectColor(buttonOrder[0])"
-          class="blue-green-test-button blue-button grow-button"
+          class="color-test-button blue-button grow-button"
         >
           This is {{ buttonOrder[0] }}
         </button>
-        <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
-          Reset
-        </button>
+        <button @click="reset" class="color-test-button mid-reset-button grow-button">Reset</button>
         <button
           @click="selectColor(buttonOrder[1])"
-          class="blue-green-test-button green-button grow-button"
+          class="color-test-button green-button grow-button"
         >
           This is {{ buttonOrder[1] }}
         </button>
       </div>
-      <div v-else class="blue-green-test-button-container two-buttons">
+      <div v-else class="color-test-button-container two-buttons">
         <button
           @click="submitResults"
-          class="blue-green-test-button submit-button grow-button"
+          class="color-test-button submit-button grow-button"
           :disabled="submitted"
         >
           {{ submitted ? 'Submitted!' : 'Submit results' }}
         </button>
-        <button
-          @click="showAbout = true"
-          class="blue-green-test-button final-reset-button grow-button"
-        >
+        <button @click="showAbout = true" class="color-test-button final-reset-button grow-button">
           About
         </button>
-        <button @click="reset" class="blue-green-test-button final-reset-button grow-button">
+        <button @click="reset" class="color-test-button final-reset-button grow-button">
           Reset
         </button>
       </div>
     </div>
-    <div v-if="submitted && showDemo" class="blue-green-test-submitted-message about-popup">
+    <div v-if="submitted && showDemo" class="color-test-submitted-message about-popup">
       <div class="about-content">
         <button @click="showDemo = false" class="close-button">&times;</button>
         <h2>Thanks! Before you go...</h2>
@@ -101,11 +101,11 @@
                 <option value="Korean">Korean</option>
                 <option value="Thai">Thai</option>
                 <option value="Vietnamese">Vietnamese</option>
-                <option value="Other with blue-green distinction">
+                <option value="Other with color distinction">
                   Another language with distinct words for blue and green
                 </option>
-                <option value="Other without blue-green distinction">
-                  Another language without a blue-green distinction
+                <option value="Other without color distinction">
+                  Another language without a color distinction
                 </option>
               </select>
             </div>
@@ -236,6 +236,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from '@/secretkeys'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
+import { fetchAggregateData } from '@/keys'
 
 import maskImage from '@/assets/mask.png'
 import GlitchText from './GlitchText.vue'
@@ -275,7 +276,8 @@ export default {
       testStartTime: null,
       logData: [],
       colorPairs: COLOR_PAIRS,
-      currentPairIndex: 0
+      currentPairIndex: 0,
+      aggregateData: null
     }
   },
   computed: {
@@ -306,7 +308,7 @@ export default {
     buttonOrder() {
       return this.currentPairIndex % 2 === 0
         ? [this.currentPair.color1, this.currentPair.color2]
-        : [this.currentPair.color2, this.currentPair.color1];
+        : [this.currentPair.color2, this.currentPair.color1]
     }
   },
   methods: {
@@ -321,9 +323,13 @@ export default {
       })
 
       // Determine which color in the pair was actually selected
-      const actualSelectedColor = this.currentPair.color1 === color ? this.currentPair.color1 : this.currentPair.color2
+      const actualSelectedColor =
+        this.currentPair.color1 === color ? this.currentPair.color1 : this.currentPair.color2
 
-      this.responses[this.currentPairIndex].push({ hue: this.currentHue, response: actualSelectedColor })
+      this.responses[this.currentPairIndex].push({
+        hue: this.currentHue,
+        response: actualSelectedColor
+      })
 
       // Get the new probe value
       const fitSigmoidStartTime = performance.now()
@@ -415,7 +421,9 @@ export default {
             color_blindness: this.colorBlindness
           }
         ])
+        if (error) throw error
         this.showDemo = false
+        console.log('Demographics submitted successfully:', data)
       } catch (error) {
         console.error('Error submitting demographics:', error)
         alert('Failed to submit demographics. Please try again.')
@@ -447,10 +455,21 @@ export default {
           test_duration: performance.now() - this.testStartTime,
           log_data: this.logData
         }
-        const { data, error } = await supabase.from('color_test_results').insert([payload])
         console.log('Submitting results:', payload)
 
-        if (error) throw error
+        // Log Supabase configuration
+        console.log('Supabase URL:', SUPABASE_URL)
+        console.log('Supabase Key (first 10 chars):', SUPABASE_KEY.substring(0, 10) + '...')
+
+        // Attempt to insert data
+        const { data, error } = await supabase.from('color_test_results').insert([payload])
+
+        if (error) {
+          console.error('Supabase error:', error)
+          throw error
+        }
+
+        console.log('Supabase response:', data)
 
         this.submitted = true
         this.showDemo = true
@@ -492,10 +511,9 @@ export default {
     getInitialHue(hueRange) {
       return Math.random() > 0.5 ? hueRange[0] : hueRange[1]
     },
-    completeTest() {
+    async completeTest() {
       confetti()
       this.logTestCompletion()
-      // Ensure all finalHues are set before showing results
       this.finalHues = this.colorPairs.map((pair, index) => {
         const midpoint = (pair.hueRange[0] + pair.hueRange[1]) / 2
         const responses = this.responses[index]
@@ -508,6 +526,9 @@ export default {
         )
         return midpoint - b
       })
+
+      // Fetch aggregate data
+      this.aggregateData = await fetchAggregateData()
     }
   },
   GlitchText,
@@ -522,7 +543,7 @@ export default {
 }
 </script>
 
-<style src="./BlueGreenTest.css" scoped />
+<style src="./ColorTest.css" scoped />
 <style scoped>
 .color-chip-turquoise {
   display: inline-block;
@@ -662,7 +683,7 @@ input[type='text'].form-control {
 .submit-button-demo:hover {
   background-color: #2a70c2;
 }
-.blue-green-test-title {
+.color-test-title {
   position: relative;
 }
 

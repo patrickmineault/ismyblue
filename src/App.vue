@@ -1,14 +1,14 @@
 <template>
-  <BlueGreenTest />
+  <ColorTest />
 </template>
 
 <script>
-import BlueGreenTest from './components/BlueGreenTest.vue'
+import ColorTest from './components/ColorTest.vue'
 
 export default {
   name: 'App',
   components: {
-    BlueGreenTest
+    ColorTest
   }
 }
 </script>

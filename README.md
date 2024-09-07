@@ -1,4 +1,4 @@
-# Is my blue your blue?
+# Is my color your color?
 
 A single page website to determine your blue green color boundary.
 
