@@ -1,7 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { SUPABASE_URL, SUPABASE_KEY } from '@/secretkeys'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const supabase = createClient(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_KEY)
 
 export const MAX_ROUNDS = 7 // 2^6, hence max resolution of 1.
 // Version 0.0.1 was the initial version.

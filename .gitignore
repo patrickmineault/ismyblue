@@ -35,3 +35,4 @@ coverage
 analysis/.env
 analysis/__pycache__
 src/secretkeys.js
+.env

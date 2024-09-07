@@ -216,7 +216,8 @@
 <script>
 import { createClient } from '@supabase/supabase-js'
 import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/keys'
-import { SUPABASE_URL, SUPABASE_KEY } from '@/secretkeys'
+const SUPABASE_URL = import.meta.env.SUPABASE_URL
+const SUPABASE_KEY = import.meta.env.SUPABASE_KEY
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
