@@ -1,8 +1,12 @@
 # Is my color your color?
 
-A single page website to determine your blue green color boundary.
+A single-page website to determine your personal color boundaries across the entire color spectrum.
 
-Uses a GLM to figure out the threshold. Compares results against a database.
+## About
+
+This project is inspired by and expanded from the original [Blue-Green Color Boundary Test](https://github.com/patrickmineault/ismyblue) called [ismyblue](https://ismy.blue) created by [Patrick Mineault](https://neuroai.science/). The original concept has been extended to cover all color boundaries, providing a comprehensive color perception test.
+
+Uses a Generalized Linear Model (GLM) to determine thresholds and compares results against a database.
 
 ## Project Setup
 

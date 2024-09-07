@@ -145,6 +145,31 @@
             >Language can affect how we memorize and name colors</a
           >. This is a color naming test designed to measure your personal color boundaries.
         </p>
+        <h2>Origins and Expansion</h2>
+        <p>
+          The original version of this test, focusing on the blue-green boundary, was created by
+          Patrick Mineault, a neuroscience and AI researcher. I was so impressed by his
+          implementation that I decided to expand it to cover all color boundaries. A huge thank you
+          to Patrick for the awesome idea and the initial implementation!
+        </p>
+        <p>
+          You can find Patrick's original blue-green test and more about his work at
+          <a href="https://neuroai.science">his blog</a>.
+        </p>
+        <h2>About the Developer</h2>
+        <p>
+          This expanded version of the color test was created by me, bapic. I'm an aspiring
+          developer working on improving my coding skills. This project presented an excellent
+          opportunity to challenge myself and learn more about web development, color theory, and
+          data visualization. By expanding Patrick's original concept to cover all color boundaries,
+          I aimed to create a more comprehensive color perception test while honing my programming
+          abilities.
+        </p>
+        <p>
+          If you'd like to connect or see what else I'm working on, you can find me on X (formerly
+          Twitter) at
+          <a href="https://x.com/itsbapic" target="_blank">@itsbapic</a>.
+        </p>
         <h2>Test validity</h2>
         <p>
           <b><i>This website is for entertainment purposes only.</i></b>
@@ -216,13 +241,22 @@
         </p>
         <h2>Who made this?</h2>
         <p>
-          I'm Patrick Mineault, a neuroscience and AI researcher. I made this as a side project
-          using Claude 3.5 Sonnet. I obtained a PhD in visual neuroscience from McGill in 2014. You
-          can read <a href="https://neuroai.science">my blog here</a>.
+          The original blue-green version was created by Patrick Mineault, a neuroscience and AI
+          researcher. He obtained a PhD in visual neuroscience from McGill in 2014. You can read
+          <a href="https://neuroai.science">his blog here</a>.
+        </p>
+        <p>
+          This expanded version, covering all color boundaries, was developed by me as a learning
+          project. I'm passionate about coding and saw this as an opportunity to improve my skills
+          while creating something interesting and interactive.
         </p>
         <h2>Can I make a version of this for my favorite color pair?</h2>
         <p>
-          <a href="https://github.com/patrickmineault/ismyblue">Right this way to Github.</a>
+          Absolutely! The source code for Patrick's original project is available on GitHub. Feel
+          free to fork it, modify it, or use it as inspiration for your own projects.
+          <a href="https://github.com/patrickmineault/ismyblue"
+            >Check out the GitHub repository here.</a
+          >
         </p>
       </div>
     </div>
@@ -231,7 +265,7 @@
 
 <script>
 import { createClient } from '@supabase/supabase-js'
-import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF, COLOR_PAIRS } from '@/keys'
+import { MAX_ROUNDS, VERSION, COLOR_PAIRS, COLOR_DATA } from '@/keys'
 import { SUPABASE_URL, SUPABASE_KEY } from '@/secretkeys'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
@@ -266,10 +300,12 @@ export default {
       submitted: false,
       showMask: false,
       maskImageUrl: maskImage,
-      binPositions: COLOR_PAIRS.map(() => BIN_POSITION),
-      counts: COLOR_PAIRS.map(() => BIN_COUNT),
-      xCdfs: COLOR_PAIRS.map(() => X_CDF),
-      yCdfs: COLOR_PAIRS.map(() => Y_CDF),
+      binPositions: COLOR_PAIRS.map(
+        (pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].BIN_POSITION
+      ),
+      counts: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].BIN_COUNT),
+      xCdfs: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].X_CDF),
+      yCdfs: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].Y_CDF),
       showAbout: false,
       showDemo: false,
       anonymousId: this.generateAnonymousId(),
