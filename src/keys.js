@@ -263,7 +263,7 @@ function calculateMedian(hues) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
 
-function calculateDistribution(hues, hueRange) {
+function calculateDistribution(hues) {
   // Implement a function to calculate the distribution of hues
   // This could be a histogram or a kernel density estimation
   // For simplicity, let's just return the hues for now
