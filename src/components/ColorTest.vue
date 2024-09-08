@@ -7,6 +7,9 @@
           <h1 v-if="showInitialMessage" key="initial" class="color-test-title">
             <span class="background-white">Test <i>your</i> color categorization</span>
           </h1>
+          <h1 v-else-if="showSecondMessage" key="second" class="color-test-title">
+            <span class="background-white">What color is this? Choose below</span>
+          </h1>
           <h1 v-else key="main" class="color-test-title">
             <span class="background-white">
               Is <i>my </i>
@@ -26,7 +29,72 @@
         </transition>
       </div>
       <div v-else class="color-test-content color-test-result-screen">
+        <div v-if="!demographicsSubmitted" class="blur-background">
+          <div class="demographics-modal">
+            <h2>Thanks! Before you go...</h2>
+            <p>
+              Please tell us a bit about yourself. This information helps us understand color
+              perception across different groups.
+            </p>
+            <form @submit.prevent="submitDemographics">
+              <div class="form-group">
+                <label for="firstLanguage"
+                  >Languages differ in how they name colors. What's your first language?</label
+                >
+                <div>
+                  <select id="firstLanguage" v-model="firstLanguage" class="form-control">
+                    <option value="Unspecified">Select a language</option>
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Greek">Greek</option>
+                    <option value="Russian">Russian</option>
+                    <option value="Arabic">Arabic</option>
+                    <option value="Chinese">Chinese</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Korean">Korean</option>
+                    <option value="Thai">Thai</option>
+                    <option value="Vietnamese">Vietnamese</option>
+                    <option value="Other with color distinction">
+                      Another language with distinct words for red, orange, yellow, green, blue, and
+                      purple
+                    </option>
+                    <option value="Other without color distinction">
+                      Another language without a color distinction
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <h3>Are you colorblind?</h3>
+              <div class="form-group">
+                <label for="colorBlindness">Being colorblind might affect the results.</label>
+                <div>
+                  <select id="colorBlindness" v-model="colorBlindness" class="form-control">
+                    <option value="unspecified">Select an option</option>
+                    <option value="dontknow">I don't know</option>
+                    <option value="no">No</option>
+                    <option value="red-green">Yes, red-green, unknown subtype</option>
+                    <option value="protanopia">Yes, protanopia</option>
+                    <option value="protanomaly">Yes, protanomaly</option>
+                    <option value="deuteranopia">Yes, deuteranopia</option>
+                    <option value="deuteranomaly">Yes, deuteranomaly</option>
+                    <option value="tritanopia">Yes, tritanopia</option>
+                    <option value="tritanomaly">Yes, tritanomaly</option>
+                    <option value="achromatopsia">Yes, achromatopsia</option>
+                    <option value="achromatomaly">Yes, achromatomaly</option>
+                  </select>
+                </div>
+                <p><b>This is not a diagnostic tool.</b></p>
+              </div>
+              <button type="submit" class="submit-button-demo">Submit and get results</button>
+            </form>
+          </div>
+        </div>
         <Results
+          v-else
           :binPositions="binPositions"
           :counts="counts"
           :xCdfs="xCdfs"
@@ -39,6 +107,7 @@
           @reset="reset"
         />
       </div>
+
       <div v-if="rounds < MAX_ROUNDS" class="color-test-button-container three-buttons">
         <button
           @click="selectColor(buttonOrder[0])"
@@ -55,84 +124,29 @@
         </button>
       </div>
       <div v-else class="color-test-button-container two-buttons">
-        <button
-          @click="submitResults"
-          class="color-test-button submit-button grow-button"
-          :disabled="submitted"
-        >
-          {{ submitted ? 'Submitted!' : 'Submit results' }}
-        </button>
         <button @click="showAbout = true" class="color-test-button final-reset-button grow-button">
           About
         </button>
         <button @click="reset" class="color-test-button final-reset-button grow-button">
-          Reset
+          Retake Test
         </button>
       </div>
-    </div>
-    <div v-if="submitted && showDemo" class="color-test-submitted-message about-popup">
-      <div class="about-content">
-        <button @click="showDemo = false" class="close-button">&times;</button>
-        <h2>Thanks! Before you go...</h2>
-        <p>
-          Optionally tell us a bit about yourself. We'll make aggregate plots for how different
-          people categorize colors.
-        </p>
-        <h3>Your first language</h3>
-        <form @submit.prevent="submitDemographics">
-          <div class="form-group">
-            <label for="firstLanguage"
-              >Languages differ in how they name colors. What's your first language?</label
-            >
-            <div>
-              <select id="firstLanguage" v-model="firstLanguage" class="form-control">
-                <option value="Unspecified">Select a language</option>
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Portuguese">Portuguese</option>
-                <option value="French">French</option>
-                <option value="German">German</option>
-                <option value="Italian">Italian</option>
-                <option value="Greek">Greek</option>
-                <option value="Russian">Russian</option>
-                <option value="Arabic">Arabic</option>
-                <option value="Chinese">Chinese</option>
-                <option value="Japanese">Japanese</option>
-                <option value="Korean">Korean</option>
-                <option value="Thai">Thai</option>
-                <option value="Vietnamese">Vietnamese</option>
-                <option value="Other with color distinction">
-                  Another language with distinct words for blue and green
-                </option>
-                <option value="Other without color distinction">
-                  Another language without a color distinction
-                </option>
-              </select>
-            </div>
+
+      <!-- Add the floating share card -->
+      <div v-if="rounds === MAX_ROUNDS" class="floating-share-card">
+        <div class="share-content">
+          <h3>Share your results</h3>
+          <div class="social-icons">
+            <i class="fab fa-twitter" @click="shareOnTwitter"></i>
+            <i class="fab fa-facebook" @click="shareOnFacebook"></i>
           </div>
-          <h3>Are you colorblind?</h3>
-          <div class="form-group">
-            <label for="colorBlindness">Being colorblind might affect the results.</label>
-            <div>
-              <select id="colorBlindness" v-model="colorBlindness" class="form-control">
-                <option value="unspecified">Select an option</option>
-                <option value="dontknow">I don't know</option>
-                <option value="no">No</option>
-                <option value="red-green">Yes, red-green, unknown subtype</option>
-                <option value="protanopia">Yes, protanopia</option>
-                <option value="protanomaly">Yes, protanomaly</option>
-                <option value="deuteranopia">Yes, deuteranopia</option>
-                <option value="deuteranomaly">Yes, deuteranomaly</option>
-                <option value="tritanopia">Yes, tritanopia</option>
-                <option value="tritanomaly">Yes, tritanomaly</option>
-                <option value="achromatopsia">Yes, achromatopsia</option>
-                <option value="achromatomaly">Yes, achromatomaly</option>
-              </select>
-            </div>
-            <p><b>This is not a diagnostic tool.</b></p>
+          <div class="share-link">
+            <input type="text" :value="shareLink" readonly class="share-link-input" />
+            <button @click="copyShareLink" class="copy-button">
+              <i class="fas fa-copy"></i>
+            </button>
           </div>
-          <button type="submit" class="submit-button-demo">Submit</button>
-        </form>
+        </div>
       </div>
     </div>
     <div v-if="showAbout" class="about-popup">
@@ -264,19 +278,15 @@
 </template>
 
 <script>
-import { createClient } from '@supabase/supabase-js'
-import { MAX_ROUNDS, VERSION, COLOR_PAIRS, COLOR_DATA } from '@/keys'
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY
+import supabase from '@/supabaseClient'
+import { MAX_ROUNDS, VERSION, COLOR_PAIRS, COLOR_DATA } from '@/colorTestConfig'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
-import { fetchAggregateData } from '@/keys'
+import { fetchAggregateData } from '@/colorTestConfig'
 
 import maskImage from '@/assets/mask.png'
 import GlitchText from './GlitchText.vue'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 export default {
   components: {
@@ -288,10 +298,14 @@ export default {
       MAX_ROUNDS: MAX_ROUNDS,
       currentHue: this.getInitialHue(COLOR_PAIRS[0].hueRange),
       showInitialMessage: true,
+      showSecondMessage: false,
+      testInputCount: 0,
       polarity: 0,
       rounds: 0,
       finalHues: COLOR_PAIRS.map(() => 0),
       responses: COLOR_PAIRS.map(() => []),
+      firstLanguage: 'Unspecified',
+      colorBlindness: 'unspecified',
       userAgent: '',
       screenWidth: 0,
       screenHeight: 0,
@@ -308,13 +322,14 @@ export default {
       xCdfs: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].X_CDF),
       yCdfs: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].Y_CDF),
       showAbout: false,
-      showDemo: false,
       anonymousId: this.generateAnonymousId(),
       testStartTime: null,
       logData: [],
       colorPairs: COLOR_PAIRS,
       currentPairIndex: 0,
-      aggregateData: null
+      aggregateData: null,
+      demographicsSubmitted: false,
+      shareLink: 'https://example.com/your-results' // Placeholder
     }
   },
   computed: {
@@ -352,12 +367,12 @@ export default {
     selectColor(color) {
       const roundStartTime = performance.now()
 
-      console.log('Color selected:', {
-        round: this.rounds + 1,
-        currentHue: this.currentHue,
-        selectedColor: color,
-        currentPair: this.currentPair
-      })
+      // console.log('Color selected:', {
+      //   round: this.rounds + 1,
+      //   currentHue: this.currentHue,
+      //   selectedColor: color,
+      //   currentPair: this.currentPair
+      // })
 
       // Determine which color in the pair was actually selected
       const actualSelectedColor =
@@ -399,7 +414,7 @@ export default {
 
       this.logData.push(roundData)
 
-      console.log(`Round ${this.rounds} completed:`, roundData)
+      // console.log(`Round ${this.rounds} completed:`, roundData)
 
       if (this.rounds === MAX_ROUNDS) {
         this.finalHues[this.currentPairIndex] =
@@ -414,17 +429,22 @@ export default {
       }
 
       // Log color transition
-      console.log('Color transition:', {
-        from: previousHue,
-        to: this.currentHue,
-        difference: this.currentHue - previousHue
-      })
+      // console.log('Color transition:', {
+      //   from: previousHue,
+      //   to: this.currentHue,
+      //   difference: this.currentHue - previousHue
+      // })
 
       this.showMask = true
       setTimeout(() => {
         this.showMask = false
-        console.log('Mask removed')
+        // console.log('Mask removed')
       }, 200)
+
+      this.testInputCount++
+      if (this.testInputCount === 3) {
+        this.showSecondMessage = false
+      }
     },
     reset() {
       this.anonymousId = this.generateAnonymousId()
@@ -434,14 +454,18 @@ export default {
       this.currentHue = this.getInitialHue(this.currentPair.hueRange)
       this.rounds = 0
       this.showInitialMessage = true
+      this.showSecondMessage = false
+      this.testInputCount = 0
       this.submitted = false
       this.showMask = false
       this.testStartTime = performance.now()
       this.logData = []
-      console.log('Test reset. New test started.')
+      this.demographicsSubmitted = false
+      // console.log('Test reset. New test started.')
       setTimeout(() => {
         this.showInitialMessage = false
-        console.log('Initial message hidden')
+        this.showSecondMessage = true
+        // console.log('Initial message hidden, second message shown')
       }, 2000)
     },
     generateAnonymousId() {
@@ -451,7 +475,7 @@ export default {
     },
     async submitDemographics() {
       try {
-        const { data, error } = await supabase.from('color_test_demo').insert([
+        const { error } = await supabase.from('color_test_demo').insert([
           {
             anonymous_id: this.anonymousId,
             first_language: this.firstLanguage,
@@ -459,8 +483,11 @@ export default {
           }
         ])
         if (error) throw error
-        this.showDemo = false
-        console.log('Demographics submitted successfully:', data)
+        this.demographicsSubmitted = true
+        // console.log('Demographics submitted successfully:', data)
+        // Now that demographics are submitted, we can submit the test results
+        await this.submitResults()
+        confetti()
       } catch (error) {
         console.error('Error submitting demographics:', error)
         alert('Failed to submit demographics. Please try again.')
@@ -492,25 +519,24 @@ export default {
           test_duration: performance.now() - this.testStartTime,
           log_data: this.logData
         }
-        console.log('Submitting results:', payload)
+        // console.log('Submitting results:', payload)
 
         // Log Supabase configuration
-        console.log('Supabase URL:', SUPABASE_URL)
-        console.log('Supabase Key (first 10 chars):', SUPABASE_KEY.substring(0, 10) + '...')
+        // console.log('Supabase URL:', SUPABASE_URL)
+        // console.log('Supabase Key (first 10 chars):', SUPABASE_KEY.substring(0, 10) + '...')
 
         // Attempt to insert data
-        const { data, error } = await supabase.from('color_test_results').insert([payload])
+        const { error } = await supabase.from('color_test_results').insert([payload])
 
         if (error) {
           console.error('Supabase error:', error)
           throw error
         }
 
-        console.log('Supabase response:', data)
+        // console.log('Supabase response:', data)
 
         this.submitted = true
-        this.showDemo = true
-        console.log('Results submitted successfully')
+        // console.log('Results submitted successfully')
       } catch (error) {
         console.error('Error submitting results:', error)
         alert('Failed to submit results. Please try again.')
@@ -522,34 +548,33 @@ export default {
       this.screenHeight = window.screen.height
       this.colorDepth = window.screen.colorDepth
       this.pixelRatio = window.devicePixelRatio || 1
-      console.log('Device info gathered:', {
-        userAgent: this.userAgent,
-        screenWidth: this.screenWidth,
-        screenHeight: this.screenHeight,
-        colorDepth: this.colorDepth,
-        pixelRatio: this.pixelRatio
-      })
+      // console.log('Device info gathered:', {
+      //   userAgent: this.userAgent,
+      //   screenWidth: this.screenWidth,
+      //   screenHeight: this.screenHeight,
+      //   colorDepth: this.colorDepth,
+      //   pixelRatio: this.pixelRatio
+      // })
     },
     logTestCompletion() {
-      const testEndTime = performance.now()
-      const testDuration = testEndTime - this.testStartTime
-      console.log('Test completed:', {
-        totalRounds: this.rounds,
-        finalHues: this.finalHues,
-        testDuration,
-        responses: this.responses,
-        logData: this.logData,
-        averageRoundDuration:
-          this.logData.reduce((sum, round) => sum + round.roundDuration, 0) / this.rounds,
-        averageFitSigmoidDuration:
-          this.logData.reduce((sum, round) => sum + round.fitSigmoidDuration, 0) / this.rounds
-      })
+      // const testEndTime = performance.now()
+      // const testDuration = testEndTime - this.testStartTime
+      // console.log('Test completed:', {
+      //   totalRounds: this.rounds,
+      //   finalHues: this.finalHues,
+      //   testDuration,
+      //   responses: this.responses,
+      //   logData: this.logData,
+      //   averageRoundDuration:
+      //     this.logData.reduce((sum, round) => sum + round.roundDuration, 0) / this.rounds,
+      //   averageFitSigmoidDuration:
+      //     this.logData.reduce((sum, round) => sum + round.fitSigmoidDuration, 0) / this.rounds
+      // })
     },
     getInitialHue(hueRange) {
       return Math.random() > 0.5 ? hueRange[0] : hueRange[1]
     },
     async completeTest() {
-      confetti()
       this.logTestCompletion()
       this.finalHues = this.colorPairs.map((pair, index) => {
         const midpoint = (pair.hueRange[0] + pair.hueRange[1]) / 2
@@ -566,15 +591,42 @@ export default {
 
       // Fetch aggregate data
       this.aggregateData = await fetchAggregateData()
+    },
+    shareOnTwitter() {
+      // Implement Twitter sharing logic
+      window.open(
+        `https://twitter.com/intent/tweet?text=Check out my color test results!&url=${encodeURIComponent(this.shareLink)}`,
+        '_blank'
+      )
+    },
+
+    shareOnFacebook() {
+      // Implement Facebook sharing logic
+      window.open(
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(this.shareLink)}`,
+        '_blank'
+      )
+    },
+
+    copyShareLink() {
+      navigator.clipboard
+        .writeText(this.shareLink)
+        .then(() => {
+          alert('Link copied to clipboard!')
+        })
+        .catch((err) => {
+          console.error('Failed to copy link: ', err)
+        })
     }
   },
   GlitchText,
   mounted() {
     this.testStartTime = performance.now()
-    console.log('Test started')
+    // console.log('Test started')
     setTimeout(() => {
       this.showInitialMessage = false
-      console.log('Initial message hidden')
+      this.showSecondMessage = true
+      // console.log('Initial message hidden, second message shown')
     }, 2000)
   }
 }
@@ -582,6 +634,110 @@ export default {
 
 <style src="./ColorTest.css" scoped />
 <style scoped>
+.floating-share-card {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: black;
+  background-color: darker;
+  border-radius: 8px;
+  padding: 15px;
+  z-index: 20;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  animation: rainbow-effect 10s linear infinite;
+}
+
+.floating-share-card * {
+  pointer-events: auto;
+}
+
+body.floating-share-card-active {
+  overflow: auto;
+}
+
+.floating-share-card-active .floating-share-card {
+  pointer-events: none;
+}
+
+.floating-share-card h3 {
+  text-align: center;
+  font-weight: 400;
+  font-size: 1.5em;
+  margin-bottom: 15px;
+}
+
+@keyframes rainbow-effect {
+  0% {
+    background-color: hsla(0, 100%, 50%, 0.3);
+    border: 2px solid hsl(0, 100%, 50%);
+    box-shadow: 0 0 10px hsl(0, 100%, 50%);
+  }
+  16.67% {
+    background-color: hsla(60, 100%, 50%, 0.3);
+    border: 2px solid hsl(60, 100%, 50%);
+    box-shadow: 0 0 10px hsl(60, 100%, 50%);
+  }
+  33.33% {
+    background-color: hsla(120, 100%, 50%, 0.3);
+    border: 2px solid hsl(120, 100%, 50%);
+    box-shadow: 0 0 10px hsl(120, 100%, 50%);
+  }
+  50% {
+    background-color: hsla(180, 100%, 50%, 0.3);
+    border: 2px solid hsl(180, 100%, 50%);
+    box-shadow: 0 0 10px hsl(180, 100%, 50%);
+  }
+  66.67% {
+    background-color: hsla(240, 100%, 50%, 0.3);
+    border: 2px solid hsl(240, 100%, 50%);
+    box-shadow: 0 0 10px hsl(240, 100%, 50%);
+  }
+  83.33% {
+    background-color: hsla(300, 100%, 50%, 0.3);
+    border: 2px solid hsl(300, 100%, 50%);
+    box-shadow: 0 0 10px hsl(300, 100%, 50%);
+  }
+  100% {
+    background-color: hsla(360, 100%, 50%, 0.3);
+    border: 2px solid hsl(360, 100%, 50%);
+    box-shadow: 0 0 10px hsl(360, 100%, 50%);
+  }
+}
+
+.share-content {
+  width: 100%; /* Make share content full width */
+}
+
+.share-link {
+  display: inline-flex; /* Changed from flex to inline-flex */
+  background-color: #222;
+  color: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.share-link-input {
+  flex-grow: 1;
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  color: white;
+  font-size: 0.9em;
+  width: calc(100% + 240px); /* Adjust 40px based on the actual width of your copy button */
+  min-width: 0;
+}
+
+.share-link-input:focus {
+  outline: none;
+  background-color: #333;
+}
+
 .color-chip-turquoise {
   display: inline-block;
   width: 1em;
@@ -715,6 +871,8 @@ input[type='text'].form-control {
   cursor: pointer;
   font-size: 1rem;
   transition: background-color 0.3s ease;
+  width: 100%;
+  margin-top: 1rem;
 }
 
 .submit-button-demo:hover {
@@ -741,5 +899,80 @@ input[type='text'].form-control {
   width: 100%;
   height: 100%;
   z-index: 2;
+}
+
+.blur-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.demographics-modal {
+  background-color: white;
+  color: black;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button-demo {
+  background-color: #4a90e2;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.submit-button-demo:hover {
+  background-color: #2a70c2;
+}
+
+.share-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.social-icons i {
+  font-size: 1.5em;
+  margin: 0 10px;
+  cursor: pointer;
+}
+
+.copy-button {
+  padding: 5px 10px;
+  background-color: #333;
+  border: 1px solid #555;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  color: #fff;
+}
+
+.copy-button:hover {
+  background-color: #444;
 }
 </style>

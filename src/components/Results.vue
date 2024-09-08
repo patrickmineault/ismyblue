@@ -3,7 +3,7 @@
     <div class="results-content">
       <div v-for="(pair, index) in colorPairs" :key="index" class="color-test-result-screen">
         <div class="svg-container">
-          <svg :ref="`svg${index}`" class="w-full h-96"></svg>
+          <svg :ref="`svg${index}`" class="responsive-svg"></svg>
           <div class="absolute top-0 left-0 p-1">
             <div class="color-test-result-color">
               <p class="result-text bg-white bg-opacity-70 p-1 rounded">
@@ -86,7 +86,7 @@
 
 <script>
 import * as d3 from 'd3'
-import { COLOR_PAIRS, COLOR_DATA } from '@/keys'
+import { COLOR_PAIRS, COLOR_DATA } from '@/colorTestConfig'
 
 export default {
   name: 'ResultsDisplay',
@@ -122,7 +122,9 @@ export default {
   },
   data() {
     return {
-      colorPairs: COLOR_PAIRS
+      colorPairs: COLOR_PAIRS,
+      svgWidth: 0,
+      svgHeight: 0
     }
   },
   computed: {
@@ -138,6 +140,11 @@ export default {
   },
   mounted() {
     this.createPlots()
+    this.updateSvgDimensions()
+    window.addEventListener('resize', this.updateSvgDimensions)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.updateSvgDimensions)
   },
   methods: {
     hasData(pair) {
@@ -161,8 +168,8 @@ export default {
       svg.selectAll('*').remove()
 
       const width = this.$refs[`svg${index}`][0].clientWidth
-      const height = this.$refs[`svg${index}`][0].clientHeight
-      const margin = { top: 0, right: 0, bottom: 0, left: 0 }
+      const height = 240 // Reduced height
+      const margin = { top: 20, right: 20, bottom: 30, left: 40 }
       const innerWidth = width - margin.left - margin.right
       const innerHeight = height - margin.top - margin.bottom
 
@@ -282,13 +289,18 @@ export default {
         .attr('y2', bbox.y + 8)
         .attr('stroke', 'black')
         .attr('stroke-width', 3)
+
+      // Update SVG viewBox
+      svg.attr('viewBox', `0 0 ${width} ${height}`)
     },
     createEmptyPlot(index, pair) {
       const svg = d3.select(this.$refs[`svg${index}`][0])
       svg.selectAll('*').remove()
 
       const width = this.$refs[`svg${index}`][0].clientWidth
-      const height = this.$refs[`svg${index}`][0].clientHeight
+      const height = 240 // Reduced height
+
+      svg.attr('viewBox', `0 0 ${width} ${height}`)
 
       const gradient = svg
         .append('defs')
@@ -320,17 +332,20 @@ export default {
         .attr('y1', 0)
         .attr('y2', height)
         .attr('stroke', 'black')
-        .attr('stroke-width', 3)
+        .attr('stroke-width', 1)
         .attr('stroke-dasharray', '5,5')
     },
     getMiddleColor(pair) {
       const middleHue = (pair.hueRange[0] + pair.hueRange[1]) / 2
       return `hsl(${middleHue}, 100%, 50%)`
+    },
+    updateSvgDimensions() {
+      // This method is no longer needed for resizing, but you can keep it if you need it for other purposes
     }
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize)
   }
+  // beforeUnmount() {
+  //   window.removeEventListener('resize', this.updateSvgDimensions)
+  // }
 }
 </script>
 
@@ -362,7 +377,7 @@ export default {
   flex-grow: 1;
   position: relative;
   width: 100%;
-  height: 24rem;
+  height: 240px; /* Reduced height */
 }
 
 svg {
@@ -408,5 +423,15 @@ svg {
 
 .floating-button:hover {
   background-color: #2a70c2;
+}
+
+.color-gradient {
+  width: 100%;
+  height: auto;
+}
+
+.responsive-svg {
+  width: 100%;
+  height: 100%;
 }
 </style>

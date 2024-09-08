@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY)
+import supabase from './supabaseClient'
 
 export const MAX_ROUNDS = 7 // 2^6, hence max resolution of 1.
 // Version 0.0.1 was the initial version.

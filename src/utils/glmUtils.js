@@ -22,30 +22,29 @@ export function fitSigmoid(
     }
   }
 
-  const logSigmoid = (x) => {
-    if (x >= 0) {
-      return -Math.log1p(Math.exp(-x))
-    } else {
-      return x - Math.log1p(Math.exp(x))
-    }
-  }
+  // const logSigmoid = (x) => {
+  //   if (x >= 0) {
+  //     return -Math.log1p(Math.exp(-x))
+  //   } else {
+  //     return x - Math.log1p(Math.exp(x))
+  //   }
+  // }
 
   const midpoint = (hueRange[0] + hueRange[1]) / 2
 
-  const logLikelihood = (a, b) => {
-    return hues.reduce((sum, hue, i) => {
-      const z = a * (hue - midpoint + b)
-      return sum + (responses[i] ? logSigmoid(z) : logSigmoid(-z))
-    }, 0)
-  }
+  // const logLikelihood = (a, b) => {
+  //   return hues.reduce((sum, hue, i) => {
+  //     const z = a * (hue - midpoint + b)
+  //     return sum + (responses[i] ? logSigmoid(z) : logSigmoid(-z))
+  //   }, 0)
+  // }
 
   // Add logging for input parameters
-  console.log('fitSigmoid input:', { hues, responses, polarity, tailProbability, hueRange })
+  // console.log('fitSigmoid input:', { hues, responses, polarity, tailProbability, hueRange })
 
   // Newton's method
   for (let iter = 0; iter < 10; iter++) {
     // TODO: Add convergence check
-    const ll = logLikelihood(a, b)
     const grad_a =
       hues.reduce((sum, hue, i) => {
         const z = a * (hue - midpoint + b)
@@ -90,10 +89,10 @@ export function fitSigmoid(
     // Clamp a to prevent divergence.
     a = Math.max(0.01, a)
 
-    console.log(`Iteration ${iter + 1}:`, { a, b, ll, grad_a, grad_b, delta_a, delta_b })
+    // console.log(`Iteration ${iter + 1}:`, { a, b, ll, grad_a, grad_b, delta_a, delta_b })
 
     if (Math.abs(delta_a) < 1e-6 && Math.abs(delta_b) < 1e-6) {
-      console.log('Convergence reached')
+      // console.log('Convergence reached')
       break
     }
   }
@@ -106,7 +105,7 @@ export function fitSigmoid(
   let newProbe = midpoint - b + Math.log(percentile / (1 - percentile)) / a
   newProbe = Math.max(hueRange[0], Math.min(newProbe, hueRange[1]))
 
-  console.log('fitSigmoid output:', { a, b, polarity, newProbe, percentile, hueRange })
+  // console.log('fitSigmoid output:', { a, b, polarity, newProbe, percentile, hueRange })
 
   return { a, b, polarity, newProbe }
 }
