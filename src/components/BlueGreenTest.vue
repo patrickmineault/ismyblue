@@ -33,13 +33,6 @@
       </div>
       <div v-else class="blue-green-test-button-container two-buttons">
         <button
-          @click="submitResults"
-          class="blue-green-test-button submit-button grow-button"
-          :disabled="submitted"
-        >
-          {{ submitted ? 'Submitted!' : 'Submit results' }}
-        </button>
-        <button
           @click="showAbout = true"
           class="blue-green-test-button final-reset-button grow-button"
         >
@@ -58,7 +51,7 @@
           won't get accurate thresholds. This might indicate you have an unusually calibrated
           screen, a night filter, or you made a mistake. Try again?
         </p>
-        <button @click="reset()" class="reset-button submit-button-demo">Reset</button>
+        <button @click="reset()" class="reset-button reset-button">Reset</button>
       </div>
     </div>
     <div
@@ -71,91 +64,9 @@
           You labeled all the colors as {{ allSame }}. We can't infer a boundary based on your
           responses. This might indicate you have an unusually calibrated screen or a night filter.
         </p>
-        <button @click="reset()" class="reset-button submit-button-demo">Reset</button>
+        <button @click="reset()" class="reset-button reset-button">Reset</button>
       </div>
     </div>
-    <div v-if="submitted && showDemo" class="blue-green-test-submitted-message about-popup">
-      <div class="about-content">
-        <button @click="showDemo = false" class="close-button">&times;</button>
-        <h2>Thanks! Before you go...</h2>
-        <p>
-          Optionally tell us a bit about yourself. We'll make aggregate plots for how different
-          people categorize colors.
-        </p>
-        <h3>Your first language</h3>
-        <form @submit.prevent="submitDemographics">
-          <div class="form-group">
-            <label for="firstLanguage"
-              >Languages differ in how they name colors. What's your first language?</label
-            >
-            <div>
-              <select id="firstLanguage" v-model="firstLanguage" class="form-control">
-                <option value="Unspecified">Select a language</option>
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Portuguese">Portuguese</option>
-                <option value="French">French</option>
-                <option value="German">German</option>
-                <option value="Italian">Italian</option>
-                <option value="Greek">Greek</option>
-                <option value="Russian">Russian</option>
-                <option value="Arabic">Arabic</option>
-                <option value="Chinese">Chinese</option>
-                <option value="Japanese">Japanese</option>
-                <option value="Korean">Korean</option>
-                <option value="Thai">Thai</option>
-                <option value="Vietnamese">Vietnamese</option>
-                <option value="Other with blue-green distinction">
-                  Another language with distinct words for blue and green
-                </option>
-                <option value="Other without blue-green distinction">
-                  Another language without a blue-green distinction
-                </option>
-              </select>
-            </div>
-          </div>
-          <h3>Are you colorblind?</h3>
-          <div class="form-group">
-            <label for="colorBlindness">Being colorblind might affect the results.</label>
-            <div>
-              <select id="colorBlindness" v-model="colorBlindness" class="form-control">
-                <option value="unspecified">Select an option</option>
-                <option value="dontknow">I don't know</option>
-                <option value="no">No</option>
-                <option value="red-green">Yes, red-green, unknown subtype</option>
-                <option value="protanopia">Yes, protanopia</option>
-                <option value="protanomaly">Yes, protanomaly</option>
-                <option value="deuteranopia">Yes, deuteranopia</option>
-                <option value="deuteranomaly">Yes, deuteranomaly</option>
-                <option value="tritanopia">Yes, tritanopia</option>
-                <option value="tritanomaly">Yes, tritanomaly</option>
-                <option value="achromatopsia">Yes, achromatopsia</option>
-                <option value="achromatomaly">Yes, achromatomaly</option>
-              </select>
-            </div>
-            <p><b>This is not a diagnostic tool.</b></p>
-          </div>
-          <h3>Your gender (optional)</h3>
-          <div class="form-group">
-            <label for="gender"
-              >Socialization and prevalence of colorblindness might affect the results.</label
-            >
-            <div>
-              <select id="gender" v-model="gender" class="form-control">
-                <option value="unspecified">Select an option</option>
-                <option value="man">Man</option>
-                <option value="woman">Woman</option>
-                <option value="nonbinary">Non-binary</option>
-                <option value="other">Other</option>
-                <option value="prefernot">Prefer not to say</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="submit-button-demo" :disabled="submittedDemo">Submit</button>
-        </form>
-      </div>
-    </div>
-
     <div v-if="showAbout" class="about-popup">
       <div class="about-content">
         <button @click="showAbout = false" class="close-button">&times;</button>
@@ -171,7 +82,7 @@
           <b><i>This website is for entertainment purposes only.</i></b>
         </p>
         <p>
-          Color perception is tricky to measure–vision scientists use specialized calibrated
+          Color perception is tricky to measure--vision scientists use specialized calibrated
           equipment to measure color perception. Graphic designers use physical color cards, such as
           those
           <a
@@ -197,9 +108,15 @@
         <p>
           The test asks you to categorize colors sequentially. Colors are often represented in HSL
           (hue, saturation, lightness) color space. Hue 120 is green, and hue 240 is blue. The test
-          focuses on blue-green hues between 150 and 210. The test assumes that your responses
-          between blue and green are represented by a sigmoid curve. It sequentially fits that
-          sigmoid curve to your responses:
+          focuses on blue-green hues between 150 and 210. On the web, HSL coordinates are translated
+          to
+          <a href="https://en.wikipedia.org/wiki/SRGB">sRGB color space</a>, the standard color
+          space of the web, which is not perceptually uniform. These sRGB values are translated
+          nonlinearly to your monitor through a gamma curve.
+        </p>
+        <p>
+          The test assumes that your responses between blue and green are represented by a sigmoid
+          curve. It sequentially fits that sigmoid curve to your responses:
         </p>
 
         <img src="@/assets/formula.svg" alt="Formula" />
@@ -230,11 +147,11 @@
           <span class="color-chip-cyan mr-1"></span>. That means most people's boundaries are
           shifted toward saying that cyan is blue.
         </p>
-        <h2>What happens when I hit submit?</h2>
+        <h2>What information does this website collect?</h2>
         <p>
-          When you hit submit, we store your responses anonymously so we can aggregate them later
-          and measure aggregate naming curves. We don't store any information that would identify
-          you personally.
+          This website collects aggregate usage metrics to understand how many people use the site
+          and when. Since we received plenty of responses to the test, we have closed data
+          submission.
         </p>
         <h2>Who made this?</h2>
         <p>
@@ -257,16 +174,12 @@ import { MAX_ROUNDS, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/config' // 
 </script>
 
 <script>
-import { createClient } from '@supabase/supabase-js'
 import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/config'
-import { SUPABASE_URL, SUPABASE_KEY } from '@/keys'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
 
 import maskImage from '@/assets/mask.png'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 export default {
   components: {
@@ -284,17 +197,11 @@ export default {
       maskImageUrl: maskImage,
       showAbout: false,
       showDemo: false,
-      anonymousId: this.generateAnonymousId(),
       greenButtonRight: Math.random() > 0.5,
       firstColorMislabeled: false,
       allSame: false,
       showResults: false,
-      submitted: false,
-      submittedDemo: false,
-      errorMessage: '',
-      firstLanguage: 'Unspecified',
-      colorBlindness: 'unspecified',
-      gender: 'unspecified'
+      errorMessage: ''
     }
   },
   computed: {
@@ -381,7 +288,6 @@ export default {
         currentHue = this.currentHue == 210 ? 150 : 210
       }
 
-      this.anonymousId = this.generateAnonymousId()
       this.currentHue = currentHue
       this.rounds = 0
       this.finalHue = 0
@@ -392,84 +298,10 @@ export default {
       this.firstColorMislabeled = false
       this.allSame = false
       this.showResults = false
-      this.submitted = false
-      this.submittedDemo = false
 
       setTimeout(() => {
         this.showInitialMessage = false
       }, 2000)
-    },
-    generateAnonymousId() {
-      return (
-        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      )
-    },
-    async submitDemographics() {
-      this.submittedDemo = true
-      try {
-        console.log('Submitting demo')
-        const { data, error } = await supabase.from('color_test_demo').insert([
-          {
-            anonymous_id: this.anonymousId,
-            first_language: this.firstLanguage,
-            color_blindness: this.colorBlindness,
-            gender: this.gender
-          }
-        ])
-        if (error) throw error
-      } catch (error) {
-        console.error('Error submitting demographics:', error)
-        // Fail silently for now.
-        //alert('Failed to submit results. Please try again. Error: ' + error.message)
-      }
-      this.showDemo = false
-    },
-    async submitResults() {
-      let { userAgent, screenWidth, screenHeight, colorDepth, pixelRatio } = this.gatherDeviceInfo()
-      const now = new Date()
-      let timestamp = now.toISOString()
-
-      // Create a local timestamp by adjusting for timezone offset
-      const offsetMs = now.getTimezoneOffset() * 60 * 1000
-      const localDate = new Date(now.getTime() - offsetMs)
-      let localTimestamp = localDate.toISOString()
-      this.submitted = true
-
-      try {
-        const payload = {
-          anonymous_id: this.anonymousId,
-          user_agent: userAgent,
-          screen_width: screenWidth,
-          screen_height: screenHeight,
-          color_depth: colorDepth,
-          pixel_ratio: pixelRatio,
-          timestamp: timestamp,
-          local_timestamp: localTimestamp,
-          responses: this.responses,
-          final_hue: this.finalHue,
-          version: VERSION,
-          green_button_right: this.greenButtonRight
-        }
-        const { data, error } = await supabase.from('color_test_results').insert([payload])
-        console.log(payload)
-
-        if (error) throw error
-
-        this.showDemo = true
-      } catch (error) {
-        console.error('Error submitting results:', error.message)
-        // Fail silently for now.
-        //alert('Failed to submit results. Please try again. Error: ' + error.message)
-      }
-    },
-    gatherDeviceInfo() {
-      return {
-        userAgent: navigator.userAgent,
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        colorDepth: window.screen.colorDepth,
-        pixelRatio: window.devicePixelRatio || 1
-      }
     }
   },
   mounted() {
@@ -552,61 +384,13 @@ export default {
   margin-bottom: 1rem;
 }
 
-.form-control {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: 'Cabin', sans-serif;
-  font-size: 1rem;
-  color: #333;
-  background-color: #fff;
-  appearance: none; /* Removes default styling in some browsers */
-  -webkit-appearance: none; /* For older versions of Safari */
-  -moz-appearance: none;
-}
-
-select.form-control {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 12px;
-  padding-right: 2rem;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-/* Style specifically for the language dropdown */
-#firstLanguage {
-  border: 2px solid #4a90e2;
-  transition: border-color 0.3s ease;
-}
-
-#firstLanguage:hover {
-  border-color: #2a70c2;
-}
-
 /* Ensure text inputs match select styling */
 input[type='text'].form-control {
   border: 2px solid #4a90e2;
 }
 
 /* Style for the submit button */
-.submit-button-demo {
+.reset-button {
   background-color: #4a90e2;
   color: white;
   padding: 0.5rem 1rem;
@@ -617,7 +401,7 @@ input[type='text'].form-control {
   transition: background-color 0.3s ease;
 }
 
-.submit-button-demo:hover {
+.reset-button:hover {
   background-color: #2a70c2;
 }
 </style>
