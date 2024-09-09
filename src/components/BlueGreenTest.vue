@@ -1,7 +1,7 @@
 <template>
   <div class="blue-green-test-wrapper">
     <div :style="containerStyle" class="blue-green-test-container">
-      <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-content">
+      <div v-if="!showResults" class="blue-green-test-content">
         <transition name="fade-up" mode="out-in">
           <h1 v-if="showInitialMessage" key="initial" class="blue-green-test-title">
             <span class="background-white">Test <i>your</i> color categorization</span>
@@ -13,25 +13,22 @@
       </div>
       <div v-else class="blue-green-test-content blue-green-test-result-screen">
         <Results
-          :binPosition="binPosition"
-          :count="count"
-          :xCdf="xCdf"
-          :yCdf="yCdf"
+          :binPosition="BIN_POSITION"
+          :count="BIN_COUNT"
+          :xCdf="X_CDF"
+          :yCdf="Y_CDF"
           :userThreshold="finalHue"
         />
       </div>
       <div v-if="rounds < MAX_ROUNDS" class="blue-green-test-button-container three-buttons">
-        <button @click="selectColor('blue')" class="blue-green-test-button blue-button grow-button">
-          This is blue
+        <button @click="selectColor(leftButton)" class="blue-green-test-button grow-button">
+          This is {{ leftButton }}
         </button>
         <button @click="reset" class="blue-green-test-button mid-reset-button grow-button">
           Reset
         </button>
-        <button
-          @click="selectColor('green')"
-          class="blue-green-test-button green-button grow-button"
-        >
-          This is green
+        <button @click="selectColor(rightButton)" class="blue-green-test-button grow-button">
+          This is {{ rightButton }}
         </button>
       </div>
       <div v-else class="blue-green-test-button-container two-buttons">
@@ -51,6 +48,30 @@
         <button @click="reset" class="blue-green-test-button final-reset-button grow-button">
           Reset
         </button>
+      </div>
+    </div>
+    <div v-if="firstColorMislabeled" class="about-popup">
+      <div class="about-content">
+        <h2>Whoops!</h2>
+        <p>
+          The first color is always very green or very blue. If you mislabel the first color, you
+          won't get accurate thresholds. This might indicate you have an unusually calibrated
+          screen, a night filter, or you made a mistake. Try again?
+        </p>
+        <button @click="reset()" class="reset-button submit-button-demo">Reset</button>
+      </div>
+    </div>
+    <div
+      v-if="rounds == MAX_ROUNDS && (allSame == 'blue' || allSame == 'green')"
+      class="about-popup"
+    >
+      <div class="about-content">
+        <h2>Whoops!</h2>
+        <p>
+          You labeled all the colors as {{ allSame }}. We can't infer a boundary based on your
+          responses. This might indicate you have an unusually calibrated screen or a night filter.
+        </p>
+        <button @click="reset()" class="reset-button submit-button-demo">Reset</button>
       </div>
     </div>
     <div v-if="submitted && showDemo" class="blue-green-test-submitted-message about-popup">
@@ -114,10 +135,27 @@
             </div>
             <p><b>This is not a diagnostic tool.</b></p>
           </div>
-          <button type="submit" class="submit-button-demo">Submit</button>
+          <h3>Your gender (optional)</h3>
+          <div class="form-group">
+            <label for="gender"
+              >Socialization and prevalence of colorblindness might affect the results.</label
+            >
+            <div>
+              <select id="gender" v-model="gender" class="form-control">
+                <option value="unspecified">Select an option</option>
+                <option value="man">Man</option>
+                <option value="woman">Woman</option>
+                <option value="nonbinary">Non-binary</option>
+                <option value="other">Other</option>
+                <option value="prefernot">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="submit-button-demo" :disabled="submittedDemo">Submit</button>
         </form>
       </div>
     </div>
+
     <div v-if="showAbout" class="about-popup">
       <div class="about-content">
         <button @click="showAbout = false" class="close-button">&times;</button>
@@ -134,7 +172,8 @@
         </p>
         <p>
           Color perception is tricky to measure–vision scientists use specialized calibrated
-          equipment to color perception. Graphic designers use physical color cards, such as those
+          equipment to measure color perception. Graphic designers use physical color cards, such as
+          those
           <a
             href="https://www.npr.org/2024/07/19/1197961103/pantone-colors-lawrence-herbert-stuart-semple-standards"
             >made by Pantone</a
@@ -212,6 +251,11 @@
   </div>
 </template>
 
+<script setup>
+import { ref } from 'vue'
+import { MAX_ROUNDS, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/config' // Adjust the import path as needed
+</script>
+
 <script>
 import { createClient } from '@supabase/supabase-js'
 import { MAX_ROUNDS, VERSION, BIN_POSITION, BIN_COUNT, X_CDF, Y_CDF } from '@/config'
@@ -230,32 +274,36 @@ export default {
   },
   data() {
     return {
-      MAX_ROUNDS: MAX_ROUNDS,
       currentHue: Math.random() > 0.5 ? 150 : 210,
       showInitialMessage: true,
       polarity: 0,
       rounds: 0,
       finalHue: 0,
       responses: [],
-      userAgent: '',
-      screenWidth: 0,
-      screenHeight: 0,
-      colorDepth: 0,
-      pixelRatio: 1,
-      timestamp: '',
-      submitted: false,
       showMask: false,
       maskImageUrl: maskImage,
-      binPosition: BIN_POSITION,
-      count: BIN_COUNT,
-      xCdf: X_CDF,
-      yCdf: Y_CDF,
       showAbout: false,
       showDemo: false,
-      anonymousId: this.generateAnonymousId()
+      anonymousId: this.generateAnonymousId(),
+      greenButtonRight: Math.random() > 0.5,
+      firstColorMislabeled: false,
+      allSame: false,
+      showResults: false,
+      submitted: false,
+      submittedDemo: false,
+      errorMessage: '',
+      firstLanguage: 'Unspecified',
+      colorBlindness: 'unspecified',
+      gender: 'unspecified'
     }
   },
   computed: {
+    rightButton() {
+      return this.greenButtonRight ? 'green' : 'blue'
+    },
+    leftButton() {
+      return this.greenButtonRight ? 'blue' : 'green'
+    },
     currentColor() {
       return `hsl(${this.currentHue}, 100%, 50%)`
     },
@@ -288,6 +336,17 @@ export default {
     selectColor(color) {
       this.responses.push({ hue: this.currentHue, response: color })
 
+      if (this.rounds === 0) {
+        if (color === 'blue' && this.currentHue < 180) {
+          this.firstColorMislabeled = true
+        } else if (color === 'green' && this.currentHue > 180) {
+          this.firstColorMislabeled = true
+        }
+        if (this.firstColorMislabeled) {
+          return
+        }
+      }
+
       // Get the new probe value
       const { b, newProbe, polarity } = fitSigmoid(
         this.responses.map((r) => r.hue),
@@ -299,8 +358,16 @@ export default {
       this.currentHue = newProbe
       this.rounds++
       if (this.rounds === MAX_ROUNDS) {
+        if (
+          this.responses.every((r) => r.response === 'blue') ||
+          this.responses.every((r) => r.response === 'green')
+        ) {
+          this.allSame = this.responses[0].response
+          return
+        }
         this.finalHue = 180 - b
         this.currentHue = this.finalHue
+        this.showResults = true
         confetti()
       }
       this.showMask = true
@@ -309,14 +376,25 @@ export default {
       }, 200)
     },
     reset() {
+      let currentHue = Math.random() > 0.5 ? 150 : 210
+      if (this.firstColorMislabeled) {
+        currentHue = this.currentHue == 210 ? 150 : 210
+      }
+
       this.anonymousId = this.generateAnonymousId()
-      this.currentHue = Math.random() > 0.5 ? 150 : 210
+      this.currentHue = currentHue
       this.rounds = 0
       this.finalHue = 0
+      this.polarity = 0
       this.showInitialMessage = true
-      this.submitted = false
       this.responses = []
       this.showMask = false
+      this.firstColorMislabeled = false
+      this.allSame = false
+      this.showResults = false
+      this.submitted = false
+      this.submittedDemo = false
+
       setTimeout(() => {
         this.showInitialMessage = false
       }, 2000)
@@ -327,62 +405,71 @@ export default {
       )
     },
     async submitDemographics() {
+      this.submittedDemo = true
       try {
+        console.log('Submitting demo')
         const { data, error } = await supabase.from('color_test_demo').insert([
           {
             anonymous_id: this.anonymousId,
             first_language: this.firstLanguage,
-            color_blindness: this.colorBlindness
+            color_blindness: this.colorBlindness,
+            gender: this.gender
           }
         ])
-        this.showDemo = false
+        if (error) throw error
       } catch (error) {
         console.error('Error submitting demographics:', error)
-        alert('Failed to submit demographics. Please try again.')
+        // Fail silently for now.
+        //alert('Failed to submit results. Please try again. Error: ' + error.message)
       }
+      this.showDemo = false
     },
     async submitResults() {
-      this.gatherDeviceInfo()
+      let { userAgent, screenWidth, screenHeight, colorDepth, pixelRatio } = this.gatherDeviceInfo()
       const now = new Date()
-      this.timestamp = now.toISOString()
+      let timestamp = now.toISOString()
 
       // Create a local timestamp by adjusting for timezone offset
       const offsetMs = now.getTimezoneOffset() * 60 * 1000
       const localDate = new Date(now.getTime() - offsetMs)
-      this.localTimestamp = localDate.toISOString()
+      let localTimestamp = localDate.toISOString()
+      this.submitted = true
 
       try {
         const payload = {
           anonymous_id: this.anonymousId,
-          user_agent: this.userAgent,
-          screen_width: this.screenWidth,
-          screen_height: this.screenHeight,
-          color_depth: this.colorDepth,
-          pixel_ratio: this.pixelRatio,
-          timestamp: this.timestamp,
-          local_timestamp: this.localTimestamp,
+          user_agent: userAgent,
+          screen_width: screenWidth,
+          screen_height: screenHeight,
+          color_depth: colorDepth,
+          pixel_ratio: pixelRatio,
+          timestamp: timestamp,
+          local_timestamp: localTimestamp,
           responses: this.responses,
           final_hue: this.finalHue,
-          version: VERSION
+          version: VERSION,
+          green_button_right: this.greenButtonRight
         }
         const { data, error } = await supabase.from('color_test_results').insert([payload])
         console.log(payload)
 
         if (error) throw error
 
-        this.submitted = true
         this.showDemo = true
       } catch (error) {
-        console.error('Error submitting results:', error)
-        alert('Failed to submit results. Please try again.')
+        console.error('Error submitting results:', error.message)
+        // Fail silently for now.
+        //alert('Failed to submit results. Please try again. Error: ' + error.message)
       }
     },
     gatherDeviceInfo() {
-      this.userAgent = navigator.userAgent
-      this.screenWidth = window.screen.width
-      this.screenHeight = window.screen.height
-      this.colorDepth = window.screen.colorDepth
-      this.pixelRatio = window.devicePixelRatio || 1
+      return {
+        userAgent: navigator.userAgent,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        colorDepth: window.screen.colorDepth,
+        pixelRatio: window.devicePixelRatio || 1
+      }
     }
   },
   mounted() {

@@ -31,8 +31,7 @@ export function fitSigmoid(hues, responses, polarity, tailProbability = 0.2) {
   }
 
   // Newton's method
-  for (let iter = 0; iter < 10; iter++) {
-    // TODO: Add convergence check
+  for (let iter = 0; iter < 20; iter++) {
     const ll = logLikelihood(a, b)
     const grad_a =
       hues.reduce((sum, hue, i) => {
@@ -72,13 +71,24 @@ export function fitSigmoid(hues, responses, polarity, tailProbability = 0.2) {
     const delta_a = (hess_bb * grad_a - hess_ab * grad_b) / det
     const delta_b = (hess_aa * grad_b - hess_ab * grad_a) / det
 
-    a -= delta_a
-    b -= delta_b
+    // Use a backtracking line search to ensure the step size is appropriate
+    let stepSize = 1
+    let maxIter = 10
+    for (let i = 0; i < maxIter; i++) {
+      const newA = Math.max(0.01, a - stepSize * delta_a)
+      const newB = b - stepSize * delta_b
+      const newLL = logLikelihood(newA, newB)
+      if (newLL > ll) {
+        break
+      }
+      stepSize *= 0.5
+    }
+
+    a -= stepSize * delta_a
+    b -= stepSize * delta_b
 
     // Clamp a to prevent divergence.
     a = Math.max(0.01, a)
-
-    console.log(a, b)
 
     if (Math.abs(delta_a) < 1e-6 && Math.abs(delta_b) < 1e-6) {
       break
@@ -91,7 +101,7 @@ export function fitSigmoid(hues, responses, polarity, tailProbability = 0.2) {
   }
   let percentile = polarity > 0 ? tailProbability : 1 - tailProbability
   let newProbe = 180 - b + Math.log(percentile / (1 - percentile)) / a
-  newProbe = Math.max(120, Math.min(newProbe, 240))
+  newProbe = Math.max(120, Math.min(newProbe + Math.random() * 2 - 1, 240))
 
   return { a, b, polarity, newProbe }
 }
