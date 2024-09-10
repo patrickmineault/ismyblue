@@ -29,70 +29,7 @@
         </transition>
       </div>
       <div v-else class="color-test-content color-test-result-screen">
-        <div v-if="!demographicsSubmitted" class="blur-background">
-          <div class="demographics-modal">
-            <h2>Thanks! Before you go...</h2>
-            <p>
-              Please tell us a bit about yourself. This information helps us understand color
-              perception across different groups.
-            </p>
-            <form @submit.prevent="submitDemographics">
-              <div class="form-group">
-                <label for="firstLanguage"
-                  >Languages differ in how they name colors. What's your first language?</label
-                >
-                <div>
-                  <select id="firstLanguage" v-model="firstLanguage" class="form-control">
-                    <option value="Unspecified">Select a language</option>
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="Portuguese">Portuguese</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                    <option value="Italian">Italian</option>
-                    <option value="Greek">Greek</option>
-                    <option value="Russian">Russian</option>
-                    <option value="Arabic">Arabic</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Japanese">Japanese</option>
-                    <option value="Korean">Korean</option>
-                    <option value="Thai">Thai</option>
-                    <option value="Vietnamese">Vietnamese</option>
-                    <option value="Other with color distinction">
-                      Another language with distinct words for red, orange, yellow, green, blue, and
-                      purple
-                    </option>
-                    <option value="Other without color distinction">
-                      Another language without a color distinction
-                    </option>
-                  </select>
-                </div>
-              </div>
-              <h3>Are you colorblind?</h3>
-              <div class="form-group">
-                <label for="colorBlindness">Being colorblind might affect the results.</label>
-                <div>
-                  <select id="colorBlindness" v-model="colorBlindness" class="form-control">
-                    <option value="unspecified">Select an option</option>
-                    <option value="dontknow">I don't know</option>
-                    <option value="no">No</option>
-                    <option value="red-green">Yes, red-green, unknown subtype</option>
-                    <option value="protanopia">Yes, protanopia</option>
-                    <option value="protanomaly">Yes, protanomaly</option>
-                    <option value="deuteranopia">Yes, deuteranopia</option>
-                    <option value="deuteranomaly">Yes, deuteranomaly</option>
-                    <option value="tritanopia">Yes, tritanopia</option>
-                    <option value="tritanomaly">Yes, tritanomaly</option>
-                    <option value="achromatopsia">Yes, achromatopsia</option>
-                    <option value="achromatomaly">Yes, achromatomaly</option>
-                  </select>
-                </div>
-                <p><b>This is not a diagnostic tool.</b></p>
-              </div>
-              <button type="submit" class="submit-button-demo">Submit and get results</button>
-            </form>
-          </div>
-        </div>
+        <DemographicsModal v-if="!demographicsSubmitted" @submit="submitDemographics" />
         <Results
           v-if="rounds === MAX_ROUNDS"
           :binPositions="binPositions"
@@ -102,184 +39,24 @@
           :userThresholds="finalHues"
           :isSharedResult="false"
           :shareLink="shareLink"
-          @show-about="showAbout = true"
           @reset="reset"
+          @start-test="startNewTest"
         />
       </div>
 
-      <!-- Sticky buttons container -->
-      <div class="sticky-buttons">
-        <div v-if="rounds < MAX_ROUNDS" class="color-test-button-container three-buttons">
-          <button
-            @click="selectColor(buttonOrder[0])"
-            class="color-test-button blue-button grow-button"
-          >
-            This is {{ buttonOrder[0] }}
-          </button>
-          <button @click="reset" class="color-test-button mid-reset-button grow-button">
-            Reset
-          </button>
-          <button
-            @click="selectColor(buttonOrder[1])"
-            class="color-test-button green-button grow-button"
-          >
-            This is {{ buttonOrder[1] }}
-          </button>
-        </div>
-        <div v-else-if="demographicsSubmitted" class="color-test-button-container two-buttons">
-          <button
-            @click="showAbout = true"
-            class="color-test-button final-reset-button grow-button"
-          >
-            About
-          </button>
-          <button @click="reset" class="color-test-button final-reset-button grow-button">
-            Retake Test
-          </button>
-        </div>
-      </div>
+      <BottomButtons
+        :showTestButtons="rounds < MAX_ROUNDS"
+        :buttonOrder="buttonOrder"
+        @select-color="selectColor"
+        @reset="reset"
+      />
 
       <!-- Add the floating share card -->
-      <div v-if="rounds === MAX_ROUNDS" class="floating-share-card">
-        <div class="share-content">
-          <h3>Share your results</h3>
-          <div class="social-icons">
-            <i class="fab fa-twitter" @click="shareOnTwitter"></i>
-            <i class="fab fa-facebook" @click="shareOnFacebook"></i>
-          </div>
-          <div class="share-link">
-            <input type="text" :value="shareLink" readonly class="share-link-input" />
-            <button @click="copyShareLink" class="copy-button">
-              <i class="fas fa-copy"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div v-if="showAbout" class="about-popup">
-      <div class="about-content">
-        <button @click="showAbout = false" class="close-button">&times;</button>
-        <h2>About This Website</h2>
-        <p>
-          People have different names for the colors they see.
-          <a href="https://en.wikipedia.org/wiki/Sapir%E2%80%93Whorf_hypothesis" target="_blank"
-            >Language can affect how we memorize and name colors</a
-          >. This is a color naming test designed to measure your personal color boundaries.
-        </p>
-        <h2>Origins and Expansion</h2>
-        <p>
-          The original version of this test, focusing on the blue-green boundary, was created by
-          Patrick Mineault, a neuroscience and AI researcher. I was so impressed by his
-          implementation that I decided to expand it to cover all color boundaries. A huge thank you
-          to Patrick for the awesome idea and the initial implementation!
-        </p>
-        <p>
-          You can find Patrick's original blue-green test and more about his work at
-          <a href="https://neuroai.science">his blog</a>.
-        </p>
-        <h2>About the Developer</h2>
-        <p>
-          This expanded version of the color test was created by me, bapic. I'm an aspiring
-          developer working on improving my coding skills. This project presented an excellent
-          opportunity to challenge myself and learn more about web development, color theory, and
-          data visualization. By expanding Patrick's original concept to cover all color boundaries,
-          I aimed to create a more comprehensive color perception test while honing my programming
-          abilities.
-        </p>
-        <p>
-          If you'd like to connect or see what else I'm working on, you can find me on X (formerly
-          Twitter) at
-          <a href="https://x.com/itsbapic" target="_blank">@itsbapic</a>.
-        </p>
-        <h2>Test validity</h2>
-        <p>
-          <b><i>This website is for entertainment purposes only.</i></b>
-        </p>
-        <p>
-          Color perception is tricky to measure–vision scientists use specialized calibrated
-          equipment to color perception. Graphic designers use physical color cards, such as those
-          <a
-            href="https://www.npr.org/2024/07/19/1197961103/pantone-colors-lawrence-herbert-stuart-semple-standards"
-            >made by Pantone</a
-          >, so that they can communicate colors unambiguously. Here we use your monitor or phone to
-          test how you categorize colors, which is far from perfect, since your calibration may
-          differ from mine.
-        </p>
-        <p>
-          The validity of the inference is limited by the calibration of your monitor, ambient
-          lighting, and filters such as night mode. Despite these limitations, the results should
-          have good test-retest reliability <i>on the same device, in the same ambient light</i>,
-          which you can verify by taking the test multiple times. If you want to compare your
-          results with friends, use the same device in the same ambient light.
-        </p>
-        <p>
-          Getting outlier results doesn't mean there's anything wrong with your vision. It might
-          mean you have an idiosyncratic way of naming colors, or that your monitor and lighting is
-          unusual.
-        </p>
-        <h2>Technical Details</h2>
-        <p>
-          The test asks you to categorize colors sequentially. Colors are often represented in HSL
-          (hue, saturation, lightness) color space. Hue 120 is green, and hue 240 is blue. The test
-          focuses on blue-green hues between 150 and 210. The test assumes that your responses
-          between blue and green are represented by a sigmoid curve. It sequentially fits that
-          sigmoid curve to your responses:
-        </p>
-
-        <img src="@/assets/formula.svg" alt="Formula" />
-        <br />
-        <p>
-          This is equivalent to a logistic regression model. The test uses a maximum-a-posteriori
-          (MAP) estimation algorithm (specifically, a second order Newton method implemented in pure
-          JS, no calls to a backend) to fit the sigmoid curve to your responses, with a vague prior
-          on the scale and offset parameters. It uses the fitted curve to determine which color will
-          be presented next. It tries to be smart about where it samples new points, focusing on
-          regions where you're predicted to be intermediately confident in your responses. To
-          improve the validity of the results, it randomizes which points it samples, and uses a
-          noise mask to mitigate visual adaptation.
-        </p>
-        <p>
-          It's a curve fit, not a binary search. In theory, if you feel like you're guessing in the
-          middle shades, or even guessing incorrectly, that should be fine. If you're inconsistent
-          in the middle, the curve fit should be able to recover, although your estimated threshold
-          will have larger error bars.
-        </p>
-
-        <h2>Results</h2>
-        <p>
-          In early experiments, we found that people's responses cluster around 175, which
-          coincidentally is the same as the named HTML color turquoise
-          <span class="color-chip-turquoise mr-1"></span>. This is interesting, because the nominal
-          boundary between blue and green is at 180, the named HTML color cyan
-          <span class="color-chip-cyan mr-1"></span>. That means most people's boundaries are
-          shifted toward saying that cyan is blue.
-        </p>
-        <h2>What happens when I hit submit?</h2>
-        <p>
-          When you hit submit, we store your responses anonymously so we can aggregate them later
-          and measure aggregate naming curves. We don't store any information that would identify
-          you personally.
-        </p>
-        <h2>Who made this?</h2>
-        <p>
-          The original blue-green version was created by Patrick Mineault, a neuroscience and AI
-          researcher. He obtained a PhD in visual neuroscience from McGill in 2014. You can read
-          <a href="https://neuroai.science">his blog here</a>.
-        </p>
-        <p>
-          This expanded version, covering all color boundaries, was developed by me as a learning
-          project. I'm passionate about coding and saw this as an opportunity to improve my skills
-          while creating something interesting and interactive.
-        </p>
-        <h2>Can I make a version of this for my favorite color pair?</h2>
-        <p>
-          Absolutely! The source code for Patrick's original project is available on GitHub. Feel
-          free to fork it, modify it, or use it as inspiration for your own projects.
-          <a href="https://github.com/patrickmineault/ismyblue"
-            >Check out the GitHub repository here.</a
-          >
-        </p>
-      </div>
+      <FloatingShareCard
+        v-if="rounds === MAX_ROUNDS"
+        :isSharedResult="false"
+        :shareLink="shareLink"
+      />
     </div>
   </div>
 </template>
@@ -290,6 +67,8 @@ import supabase from '@/supabaseClient'
 import { MAX_ROUNDS, VERSION, COLOR_PAIRS, COLOR_DATA } from '@/colorTestConfig'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
 import Results from './Results.vue'
+import BottomButtons from './BottomButtons.vue'
+import DemographicsModal from './DemographicsModal.vue'
 import { fitSigmoid } from '@/utils/glmUtils'
 import { fetchAggregateData } from '@/colorTestConfig'
 
@@ -299,7 +78,9 @@ import GlitchText from './GlitchText.vue'
 export default {
   components: {
     Results,
-    GlitchText
+    GlitchText,
+    BottomButtons,
+    DemographicsModal
   },
   setup() {
     const shareLink = ref('')
@@ -315,9 +96,7 @@ export default {
       currentPairIndex: 0,
 
       // User inputs and responses
-      colorBlindness: 'unspecified',
       finalHues: COLOR_PAIRS.map(() => 0),
-      firstLanguage: 'Unspecified',
       responses: COLOR_PAIRS.map(() => []),
 
       // Test state
@@ -325,7 +104,6 @@ export default {
       demographicsSubmitted: false,
       polarity: 0,
       rounds: 0,
-      showAbout: false,
       showInitialMessage: true,
       showMask: false,
       showSecondMessage: false,
@@ -470,6 +248,9 @@ export default {
         this.showSecondMessage = false
       }
     },
+    startNewTest() {
+      this.reset()
+    },
     reset() {
       this.anonymousId = this.generateAnonymousId()
       this.currentPairIndex = 0
@@ -497,13 +278,13 @@ export default {
         Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
       )
     },
-    async submitDemographics() {
+    async submitDemographics(demographicsData) {
       try {
         const { error } = await supabase.from('color_test_demo').insert([
           {
             anonymous_id: this.anonymousId,
-            first_language: this.firstLanguage,
-            color_blindness: this.colorBlindness
+            first_language: demographicsData.firstLanguage,
+            color_blindness: demographicsData.colorBlindness
           }
         ])
         if (error) throw error
@@ -602,32 +383,6 @@ export default {
 
       // Fetch aggregate data
       this.aggregateData = await fetchAggregateData()
-    },
-    shareOnTwitter() {
-      // Implement Twitter sharing logic
-      window.open(
-        `https://twitter.com/intent/tweet?text=Check out my color test results!&url=${encodeURIComponent(this.shareLink)}`,
-        '_blank'
-      )
-    },
-
-    shareOnFacebook() {
-      // Implement Facebook sharing logic
-      window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(this.shareLink)}`,
-        '_blank'
-      )
-    },
-
-    copyShareLink() {
-      navigator.clipboard
-        .writeText(this.shareLink)
-        .then(() => {
-          alert('Link copied to clipboard!')
-        })
-        .catch((err) => {
-          console.error('Failed to copy link: ', err)
-        })
     }
   },
   GlitchText,
@@ -643,252 +398,6 @@ export default {
 
 <style src="./ColorTest.css" scoped />
 <style scoped>
-.floating-share-card {
-  position: fixed;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: black;
-  background-color: darker;
-  border-radius: 8px;
-  padding: 25px;
-  padding-left: 35px;
-  padding-right: 35px;
-  z-index: 20;
-  max-width: 90%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-  animation: rainbow-effect 10s linear infinite;
-}
-
-.floating-share-card * {
-  pointer-events: auto;
-}
-
-body.floating-share-card-active {
-  overflow: auto;
-}
-
-.floating-share-card-active .floating-share-card {
-  pointer-events: none;
-}
-
-.floating-share-card h3 {
-  text-align: center;
-  font-weight: 400;
-  font-size: 1.5em;
-  margin-bottom: 15px;
-}
-
-@keyframes rainbow-effect {
-  0% {
-    background-color: hsla(0, 100%, 50%, 0.3);
-    border: 2px solid hsl(0, 100%, 50%);
-    box-shadow: 0 0 10px hsl(0, 100%, 50%);
-  }
-  16.67% {
-    background-color: hsla(60, 100%, 50%, 0.3);
-    border: 2px solid hsl(60, 100%, 50%);
-    box-shadow: 0 0 10px hsl(60, 100%, 50%);
-  }
-  33.33% {
-    background-color: hsla(120, 100%, 50%, 0.3);
-    border: 2px solid hsl(120, 100%, 50%);
-    box-shadow: 0 0 10px hsl(120, 100%, 50%);
-  }
-  50% {
-    background-color: hsla(180, 100%, 50%, 0.3);
-    border: 2px solid hsl(180, 100%, 50%);
-    box-shadow: 0 0 10px hsl(180, 100%, 50%);
-  }
-  66.67% {
-    background-color: hsla(240, 100%, 50%, 0.3);
-    border: 2px solid hsl(240, 100%, 50%);
-    box-shadow: 0 0 10px hsl(240, 100%, 50%);
-  }
-  83.33% {
-    background-color: hsla(300, 100%, 50%, 0.3);
-    border: 2px solid hsl(300, 100%, 50%);
-    box-shadow: 0 0 10px hsl(300, 100%, 50%);
-  }
-  100% {
-    background-color: hsla(360, 100%, 50%, 0.3);
-    border: 2px solid hsl(360, 100%, 50%);
-    box-shadow: 0 0 10px hsl(360, 100%, 50%);
-  }
-}
-
-.share-content {
-  width: 100%; /* Make share content full width */
-}
-
-.share-link {
-  display: inline-flex; /* Changed from flex to inline-flex */
-  background-color: #222;
-  color: white;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.share-link-input {
-  flex-grow: 1;
-  padding: 8px 12px;
-  border: none;
-  background-color: transparent;
-  color: white;
-  font-size: 0.9em;
-  width: calc(100% + 240px); /* Adjust 40px based on the actual width of your copy button */
-  min-width: 0;
-}
-
-.share-link-input:focus {
-  outline: none;
-  background-color: #333;
-}
-
-.color-chip-turquoise {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  background-color: turquoise;
-  border: 2px solid black;
-  border-radius: 0.2em;
-  margin-bottom: -0.2em;
-}
-
-.color-chip-cyan {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  background-color: cyan;
-  border: 2px solid black;
-  border-radius: 0.2em;
-  margin-bottom: -0.2em;
-}
-
-.about-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.about-content {
-  background-color: white;
-  color: black;
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 80%;
-  max-height: 80%;
-  overflow-y: auto;
-  position: relative;
-  font-family: 'Cabin', sans-serif;
-  font-size: 0.9rem;
-}
-
-.close-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 1.5rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.about-content h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-}
-
-.about-content h3 {
-  font-size: 1.2rem;
-  margin-top: 1rem;
-}
-
-.about-content p {
-  margin-bottom: 1rem;
-}
-
-.form-control {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: 'Cabin', sans-serif;
-  font-size: 1rem;
-  color: #333;
-  background-color: #fff;
-  appearance: none; /* Removes default styling in some browsers */
-  -webkit-appearance: none; /* For older versions of Safari */
-  -moz-appearance: none;
-}
-
-select.form-control {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 12px;
-  padding-right: 2rem;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-/* Style specifically for the language dropdown */
-#firstLanguage {
-  border: 2px solid #4a90e2;
-  transition: border-color 0.3s ease;
-}
-
-#firstLanguage:hover {
-  border-color: #2a70c2;
-}
-
-/* Ensure text inputs match select styling */
-input[type='text'].form-control {
-  border: 2px solid #4a90e2;
-}
-
-/* Style for the submit button */
-.submit-button-demo {
-  background-color: #4a90e2;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.submit-button-demo:hover {
-  background-color: #2a70c2;
-}
 .color-test-title {
   position: relative;
 }
@@ -896,94 +405,5 @@ input[type='text'].form-control {
 .background-white {
   position: relative;
   z-index: 1;
-}
-
-.glitch-container {
-  position: relative;
-  display: inline-block;
-}
-
-.glitch-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-}
-
-.blur-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(5px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.demographics-modal {
-  background-color: white;
-  color: black;
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.submit-button-demo {
-  background-color: #4a90e2;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.submit-button-demo:hover {
-  background-color: #2a70c2;
-}
-
-.share-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-}
-
-.social-icons {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.social-icons i {
-  font-size: 1.5em;
-  margin: 0 10px;
-  cursor: pointer;
-}
-
-.copy-button {
-  padding: 5px 10px;
-  background-color: #333;
-  border: 1px solid #555;
-  border-left: none;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-  color: #fff;
-}
-
-.copy-button:hover {
-  background-color: #444;
 }
 </style>

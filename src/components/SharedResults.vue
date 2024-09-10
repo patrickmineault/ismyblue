@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Results :userThresholds="userThresholds" :isSharedResult="!hasCompletedOwnTest" />
+    <!-- <Results :userThresholds="userThresholds" :isSharedResult="!hasCompletedOwnTest" /> -->
     <!-- <div v-if="!hasCompletedOwnTest" class="floating-share-card">
       <div class="share-content">
         <h3>See how you compare!</h3>
