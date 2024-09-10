@@ -94,42 +94,49 @@
           </div>
         </div>
         <Results
-          v-else
+          v-if="rounds === MAX_ROUNDS"
           :binPositions="binPositions"
           :counts="counts"
           :xCdfs="xCdfs"
           :yCdfs="yCdfs"
           :userThresholds="finalHues"
-          :submitted="submitted"
-          :aggregateData="aggregateData"
-          @submit-results="submitResults"
+          :isSharedResult="false"
+          :shareLink="shareLink"
           @show-about="showAbout = true"
           @reset="reset"
         />
       </div>
 
-      <div v-if="rounds < MAX_ROUNDS" class="color-test-button-container three-buttons">
-        <button
-          @click="selectColor(buttonOrder[0])"
-          class="color-test-button blue-button grow-button"
-        >
-          This is {{ buttonOrder[0] }}
-        </button>
-        <button @click="reset" class="color-test-button mid-reset-button grow-button">Reset</button>
-        <button
-          @click="selectColor(buttonOrder[1])"
-          class="color-test-button green-button grow-button"
-        >
-          This is {{ buttonOrder[1] }}
-        </button>
-      </div>
-      <div v-else class="color-test-button-container two-buttons">
-        <button @click="showAbout = true" class="color-test-button final-reset-button grow-button">
-          About
-        </button>
-        <button @click="reset" class="color-test-button final-reset-button grow-button">
-          Retake Test
-        </button>
+      <!-- Sticky buttons container -->
+      <div class="sticky-buttons">
+        <div v-if="rounds < MAX_ROUNDS" class="color-test-button-container three-buttons">
+          <button
+            @click="selectColor(buttonOrder[0])"
+            class="color-test-button blue-button grow-button"
+          >
+            This is {{ buttonOrder[0] }}
+          </button>
+          <button @click="reset" class="color-test-button mid-reset-button grow-button">
+            Reset
+          </button>
+          <button
+            @click="selectColor(buttonOrder[1])"
+            class="color-test-button green-button grow-button"
+          >
+            This is {{ buttonOrder[1] }}
+          </button>
+        </div>
+        <div v-else-if="demographicsSubmitted" class="color-test-button-container two-buttons">
+          <button
+            @click="showAbout = true"
+            class="color-test-button final-reset-button grow-button"
+          >
+            About
+          </button>
+          <button @click="reset" class="color-test-button final-reset-button grow-button">
+            Retake Test
+          </button>
+        </div>
       </div>
 
       <!-- Add the floating share card -->
@@ -278,6 +285,7 @@
 </template>
 
 <script>
+import { ref } from 'vue'
 import supabase from '@/supabaseClient'
 import { MAX_ROUNDS, VERSION, COLOR_PAIRS, COLOR_DATA } from '@/colorTestConfig'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti'
@@ -293,43 +301,59 @@ export default {
     Results,
     GlitchText
   },
+  setup() {
+    const shareLink = ref('')
+    return {
+      shareLink
+    }
+  },
   data() {
     return {
+      // Test configuration
       MAX_ROUNDS: MAX_ROUNDS,
+      colorPairs: COLOR_PAIRS,
+      currentPairIndex: 0,
+
+      // User inputs and responses
+      colorBlindness: 'unspecified',
+      finalHues: COLOR_PAIRS.map(() => 0),
+      firstLanguage: 'Unspecified',
+      responses: COLOR_PAIRS.map(() => []),
+
+      // Test state
       currentHue: this.getInitialHue(COLOR_PAIRS[0].hueRange),
-      showInitialMessage: true,
-      showSecondMessage: false,
-      testInputCount: 0,
+      demographicsSubmitted: false,
       polarity: 0,
       rounds: 0,
-      finalHues: COLOR_PAIRS.map(() => 0),
-      responses: COLOR_PAIRS.map(() => []),
-      firstLanguage: 'Unspecified',
-      colorBlindness: 'unspecified',
-      userAgent: '',
-      screenWidth: 0,
-      screenHeight: 0,
+      showAbout: false,
+      showInitialMessage: true,
+      showMask: false,
+      showSecondMessage: false,
+      submitted: false,
+      testInputCount: 0,
+
+      // Device and user info
+      anonymousId: this.generateAnonymousId(),
       colorDepth: 0,
       pixelRatio: 1,
+      screenHeight: 0,
+      screenWidth: 0,
       timestamp: '',
-      submitted: false,
-      showMask: false,
-      maskImageUrl: maskImage,
+      userAgent: '',
+
+      // Test data and analytics
+      aggregateData: null,
       binPositions: COLOR_PAIRS.map(
         (pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].BIN_POSITION
       ),
       counts: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].BIN_COUNT),
+      logData: [],
+      testStartTime: null,
       xCdfs: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].X_CDF),
       yCdfs: COLOR_PAIRS.map((pair) => COLOR_DATA[`${pair.color1}_${pair.color2}`].Y_CDF),
-      showAbout: false,
-      anonymousId: this.generateAnonymousId(),
-      testStartTime: null,
-      logData: [],
-      colorPairs: COLOR_PAIRS,
-      currentPairIndex: 0,
-      aggregateData: null,
-      demographicsSubmitted: false,
-      shareLink: 'https://example.com/your-results' // Placeholder
+
+      // UI elements
+      maskImageUrl: maskImage
     }
   },
   computed: {
@@ -484,7 +508,6 @@ export default {
         ])
         if (error) throw error
         this.demographicsSubmitted = true
-        // console.log('Demographics submitted successfully:', data)
         // Now that demographics are submitted, we can submit the test results
         await this.submitResults()
         confetti()
@@ -519,24 +542,35 @@ export default {
           test_duration: performance.now() - this.testStartTime,
           log_data: this.logData
         }
-        // console.log('Submitting results:', payload)
+        console.log('Submitting results:', payload)
 
         // Log Supabase configuration
-        // console.log('Supabase URL:', SUPABASE_URL)
-        // console.log('Supabase Key (first 10 chars):', SUPABASE_KEY.substring(0, 10) + '...')
+        console.log('Supabase URL:', supabase)
 
-        // Attempt to insert data
-        const { error } = await supabase.from('color_test_results').insert([payload])
+        // Insert data and get the inserted row
+        const { data, error } = await supabase.from('color_test_results').insert([payload]).select()
 
-        if (error) {
-          console.error('Supabase error:', error)
-          throw error
+        if (error) throw error
+
+        // Generate share link using the inserted row's ID
+        if (data && data[0] && data[0].id) {
+          const resultId = data[0].id
+          console.log('Result ID:', resultId)
+          this.shareLink = `${window.location.origin}/result/${resultId}`
+          console.log('Result link:', this.shareLink)
+
+          this.testCompleted = true // Set the flag
+
+          // Navigate to the Results page with the user's data
+          this.$router.push({
+            name: 'SharedResult',
+            params: { id: resultId }
+          })
+        } else {
+          console.error('No valid data returned from insert operation')
         }
 
-        // console.log('Supabase response:', data)
-
         this.submitted = true
-        // console.log('Results submitted successfully')
       } catch (error) {
         console.error('Error submitting results:', error)
         alert('Failed to submit results. Please try again.')
@@ -548,34 +582,11 @@ export default {
       this.screenHeight = window.screen.height
       this.colorDepth = window.screen.colorDepth
       this.pixelRatio = window.devicePixelRatio || 1
-      // console.log('Device info gathered:', {
-      //   userAgent: this.userAgent,
-      //   screenWidth: this.screenWidth,
-      //   screenHeight: this.screenHeight,
-      //   colorDepth: this.colorDepth,
-      //   pixelRatio: this.pixelRatio
-      // })
-    },
-    logTestCompletion() {
-      // const testEndTime = performance.now()
-      // const testDuration = testEndTime - this.testStartTime
-      // console.log('Test completed:', {
-      //   totalRounds: this.rounds,
-      //   finalHues: this.finalHues,
-      //   testDuration,
-      //   responses: this.responses,
-      //   logData: this.logData,
-      //   averageRoundDuration:
-      //     this.logData.reduce((sum, round) => sum + round.roundDuration, 0) / this.rounds,
-      //   averageFitSigmoidDuration:
-      //     this.logData.reduce((sum, round) => sum + round.fitSigmoidDuration, 0) / this.rounds
-      // })
     },
     getInitialHue(hueRange) {
       return Math.random() > 0.5 ? hueRange[0] : hueRange[1]
     },
     async completeTest() {
-      this.logTestCompletion()
       this.finalHues = this.colorPairs.map((pair, index) => {
         const midpoint = (pair.hueRange[0] + pair.hueRange[1]) / 2
         const responses = this.responses[index]
@@ -622,11 +633,9 @@ export default {
   GlitchText,
   mounted() {
     this.testStartTime = performance.now()
-    // console.log('Test started')
     setTimeout(() => {
       this.showInitialMessage = false
       this.showSecondMessage = true
-      // console.log('Initial message hidden, second message shown')
     }, 2000)
   }
 }
@@ -642,7 +651,9 @@ export default {
   color: black;
   background-color: darker;
   border-radius: 8px;
-  padding: 15px;
+  padding: 25px;
+  padding-left: 35px;
+  padding-right: 35px;
   z-index: 20;
   max-width: 90%;
   display: flex;

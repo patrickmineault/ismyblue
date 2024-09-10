@@ -1,30 +1,12 @@
 <template>
-  <div class="results-container">
-    <div class="results-content">
-      <div v-for="(pair, index) in colorPairs" :key="index" class="color-test-result-screen">
-        <div class="svg-container">
-          <svg :ref="`svg${index}`" class="responsive-svg"></svg>
-          <div class="absolute top-0 left-0 p-1">
-            <div class="color-test-result-color">
-              <p class="result-text bg-white bg-opacity-70 p-1 rounded">
-                <i>Your</i> {{ pair.color1 }}
-              </p>
-            </div>
-          </div>
-          <div class="absolute top-0 right-0 p-1">
-            <div class="color-test-result-color">
-              <p class="result-text bg-white bg-opacity-70 p-1 rounded">
-                <i>Your</i> {{ pair.color2 }}
-              </p>
-            </div>
-          </div>
-          <div v-if="!hasData(pair)" class="absolute inset-0 flex items-center justify-center">
-            <p class="text-lg font-bold text-gray-600 bg-white bg-opacity-70 p-2 rounded">
-              Insufficient data for {{ pair.color1 }}-{{ pair.color2 }} boundary
-            </p>
-          </div>
+  <div class="results-container color-test-content color-test-result-screen">
+    <div class="gradient-container">
+      <svg ref="mainSvg" class="main-svg"></svg>
+      <div v-for="(pair, index) in COLOR_PAIRS" :key="index" class="color-label-container">
+        <div class="color-label">
+          <p class="result-text"><i>Your</i> {{ pair.color1 }}</p>
         </div>
-        <div class="color-test-result-text w-full mt-0 bg-white">
+        <div class="color-description">
           <p class="result-text">
             <i>Your</i> {{ pair.color1 }}-{{ pair.color2 }} boundary is at hue
             {{ Math.round(userThresholds[index]) }}.
@@ -78,8 +60,48 @@
         </div>
       </div>
     </div>
-    <div class="floating-actions">
-      <slot name="actions"></slot>
+
+    <!-- Conditional rendering for the action buttons -->
+    <!-- <div v-if="!isSharedResult" class="sticky-buttons"> -->
+    <div class="sticky-buttons">
+      <div class="color-test-button-container two-buttons">
+        <button
+          @click="$emit('show-about')"
+          class="color-test-button final-reset-button grow-button"
+        >
+          About
+        </button>
+        <button @click="$emit('reset')" class="color-test-button final-reset-button grow-button">
+          Retake Test
+        </button>
+      </div>
+    </div>
+
+    <!-- Conditional rendering for the share card -->
+    <!-- <div v-if="!isSharedResult" class="floating-share-card"> -->
+    <div class="floating-share-card">
+      <div class="share-content">
+        <h3>Share your results</h3>
+        <div class="social-icons">
+          <i class="fab fa-twitter" @click="shareOnTwitter"></i>
+          <i class="fab fa-facebook" @click="shareOnFacebook"></i>
+        </div>
+        <div class="share-link">
+          <input type="text" :value="shareLink" readonly class="share-link-input" />
+          <button @click="copyShareLink" class="copy-button">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- New card for shared results -->
+    <!-- <div v-if="isSharedResult" class="floating-share-card"> -->
+    <div class="floating-share-card">
+      <div class="share-content">
+        <h3>See how you compare!</h3>
+        <button @click="$emit('start-test')" class="start-test-button">Start Test</button>
+      </div>
     </div>
   </div>
 </template>
@@ -89,349 +111,290 @@ import * as d3 from 'd3'
 import { COLOR_PAIRS, COLOR_DATA } from '@/colorTestConfig'
 
 export default {
-  name: 'ResultsDisplay',
   props: {
-    binPositions: {
-      type: Array,
-      required: true
-    },
-    counts: {
-      type: Array,
-      required: true
-    },
-    xCdfs: {
-      type: Array,
-      required: true
-    },
-    yCdfs: {
-      type: Array,
-      required: true
-    },
     userThresholds: {
       type: Array,
-      required: true
+      default: () => []
     },
-    submitted: {
+    isSharedResult: {
       type: Boolean,
       default: false
     },
-    aggregateData: {
-      type: Array,
-      default: () => null
+    shareLink: {
+      type: String,
+      default: ''
     }
   },
   data() {
     return {
-      colorPairs: COLOR_PAIRS,
       svgWidth: 0,
-      svgHeight: 0
-    }
-  },
-  computed: {
-    inclusivePercentages() {
-      return this.userThresholds.map((threshold, index) => {
-        const xCdf = this.xCdfs[index]
-        const yCdf = this.yCdfs[index]
-        if (!xCdf || !yCdf || xCdf.length === 0 || yCdf.length === 0) return 0
-        const i = xCdf.findIndex((value) => value > threshold)
-        return i !== -1 ? yCdf[i] : 1
-      })
+      svgHeight: 2400,
+      margin: { top: 20, right: 30, bottom: 20, left: 40 },
+      COLOR_PAIRS,
+      inclusivePercentages: [] // You'll need to calculate and populate this array
     }
   },
   mounted() {
-    this.createPlots()
-    this.updateSvgDimensions()
-    window.addEventListener('resize', this.updateSvgDimensions)
+    this.createContinuousGradient()
+    window.addEventListener('resize', this.handleResize)
   },
   beforeUnmount() {
-    window.removeEventListener('resize', this.updateSvgDimensions)
+    window.removeEventListener('resize', this.handleResize)
   },
   methods: {
-    hasData(pair) {
-      const pairName = `${pair.color1}_${pair.color2}`
-      return COLOR_DATA[pairName].BIN_POSITION.length > 0
+    handleResize() {
+      this.createContinuousGradient()
     },
-    formatPercentage(value) {
-      return `${Math.round(value * 100)}%`
-    },
-    createPlots() {
-      this.colorPairs.forEach((pair, index) => {
-        if (this.hasData(pair)) {
-          this.createPlot(index, pair)
-        } else {
-          this.createEmptyPlot(index, pair)
-        }
-      })
-    },
-    createPlot(index, pair) {
-      const svg = d3.select(this.$refs[`svg${index}`][0])
-      svg.selectAll('*').remove()
+    createContinuousGradient() {
+      const svg = d3.select(this.$refs.mainSvg)
+      svg.selectAll('*').remove() // Clear existing content
 
-      const width = this.$refs[`svg${index}`][0].clientWidth
-      const height = 240 // Reduced height
-      const margin = { top: 20, right: 20, bottom: 30, left: 40 }
-      const innerWidth = width - margin.left - margin.right
-      const innerHeight = height - margin.top - margin.bottom
+      // Set width and height
+      this.svgWidth = this.$el.clientWidth
+      this.svgHeight = 2400 // Adjust this value as needed
 
-      const range_l = pair.hueRange[0]
-      const range_r = pair.hueRange[1]
-      const x = d3.scaleLinear().domain([range_l, range_r]).range([0, innerWidth])
-      const y = d3.scaleLinear().domain([0, 1]).range([innerHeight, 0])
+      // Set viewBox to create responsive SVG
+      svg
+        .attr('viewBox', `0 0 ${this.svgWidth} ${this.svgHeight}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet')
 
-      const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
-
-      // Create gradient background
+      // Create the continuous gradient
       const defs = svg.append('defs')
       const gradient = defs
         .append('linearGradient')
-        .attr('id', `hue-gradient-${index}`)
+        .attr('id', 'continuous-gradient')
         .attr('x1', '0%')
         .attr('y1', '0%')
-        .attr('x2', '100%')
-        .attr('y2', '0%')
+        .attr('x2', '0%')
+        .attr('y2', '100%')
 
-      for (let i = range_l; i <= range_r; i++) {
+      // Add color stops for each color pair
+      COLOR_PAIRS.forEach((pair, index) => {
+        const offset = (index / COLOR_PAIRS.length) * 100
         gradient
           .append('stop')
-          .attr('offset', `${((i - range_l) / (range_r - range_l)) * 100}%`)
-          .attr('stop-color', `hsl(${i}, 100%, 50%)`)
-      }
+          .attr('offset', `${offset}%`)
+          .attr('stop-color', `hsl(${pair.hueRange[0]}, 100%, 50%)`)
+        gradient
+          .append('stop')
+          .attr('offset', `${((index + 1) / COLOR_PAIRS.length) * 100}%`)
+          .attr('stop-color', `hsl(${pair.hueRange[1]}, 100%, 50%)`)
+      })
 
+      // Create the main group element
+      const g = svg.append('g')
+
+      // Create the gradient rectangle
       g.append('rect')
-        .attr('width', innerWidth)
-        .attr('height', innerHeight)
-        .attr('fill', `url(#hue-gradient-${index})`)
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', this.svgWidth)
+        .attr('height', this.svgHeight)
+        .style('fill', 'url(#continuous-gradient)')
+
+      // Create individual plots for each color pair
+      const pairHeight = this.svgHeight / COLOR_PAIRS.length
+      COLOR_PAIRS.forEach((pair, index) => {
+        this.createPlot(g, pair, index, this.svgWidth, pairHeight)
+      })
+    },
+    createPlot(g, pair, index, width, height) {
+      const plotG = g
+        .append('g')
+        .attr('transform', `translate(${this.margin.left},${this.margin.top + index * height})`)
+
+      const y = d3.scaleLinear().domain(pair.hueRange).range([0, height])
+
+      const x = d3.scaleLinear().domain([0, 1]).range([0, width])
+
+      const colorKey = `${pair.color1}_${pair.color2}`
+      const xCdf = COLOR_DATA[colorKey].X_CDF
+      const yCdf = COLOR_DATA[colorKey].Y_CDF
 
       // Create line generator
       const line = d3
         .line()
-        .x((d) => x(d[0]))
-        .y((d) => y(d[1]))
+        .x((d) => x(d[1]))
+        .y((d) => y(d[0]))
 
       // Create path for CDF line
-      const path = g
+      plotG
         .append('path')
-        .datum(d3.zip(this.xCdfs[index], this.yCdfs[index]))
+        .datum(d3.zip(xCdf, yCdf))
         .attr('fill', 'none')
         .attr('stroke', 'black')
         .attr('stroke-width', 1)
         .attr('d', line)
 
-      // Calculate the start and end points for clipping
-      const startX = x(range_l)
-      const endX = x(range_r)
-
-      // Create a clip path
-      const clipPath = defs.append('clipPath').attr('id', `gradient-clip-${index}`)
-
-      clipPath
-        .append('rect')
-        .attr('x', startX)
-        .attr('y', 0)
-        .attr('width', endX - startX)
-        .attr('height', innerHeight)
-
-      // Add vertical line for user threshold
-      const userThresholdX = x(this.userThresholds[index])
-      const thresh = g
+      // Add user threshold line
+      const userThresholdY = y(this.userThresholds[index])
+      plotG
         .append('line')
-        .attr('x1', userThresholdX)
-        .attr('x2', userThresholdX)
-        .attr('y1', 0)
-        .attr('y2', innerHeight)
+        .attr('x1', 0)
+        .attr('x2', width)
+        .attr('y1', userThresholdY)
+        .attr('y2', userThresholdY)
         .attr('stroke', 'black')
-        .attr('stroke-width', 3)
+        .attr('stroke-width', 2)
         .attr('stroke-dasharray', '5,5')
 
-      // Apply the clip path to the CDF line
-      path.attr('clip-path', `url(#gradient-clip-${index})`)
-
-      // Animate the line
-      const length = path.node().getTotalLength()
-      path
-        .attr('stroke-dasharray', length + ' ' + length)
-        .attr('stroke-dashoffset', length)
-        .transition()
-        .duration(2000)
-        .ease(d3.easeLinear)
-        .attr('stroke-dashoffset', 0)
-
-      // Animate the threshold line
-      thresh
-        .attr('y2', 0)
-        .transition()
-        .delay(2000) // Start after the path animation
-        .duration(1000)
-        .ease(d3.easeLinear)
-        .attr('y2', innerHeight)
-
-      // Add axes
-      g.append('g').attr('transform', `translate(0,${innerHeight})`).call(d3.axisBottom(x).ticks(5))
-      g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.0%')))
-
-      // Add label
-      const label = svg
-        .append('text')
-        .attr('x', width - margin.right - 10)
-        .attr('y', height - margin.bottom - 10)
-        .attr('text-anchor', 'end')
-        .attr('font-size', '12px')
-        .attr('fill', 'black')
-        .text('threshold distribution')
-
-      const bbox = label.node().getBBox()
-      // Add a small line
-      svg
-        .append('line')
-        .attr('x1', bbox.x - 30)
-        .attr('y1', bbox.y + 8)
-        .attr('x2', bbox.x - 10)
-        .attr('y2', bbox.y + 8)
-        .attr('stroke', 'black')
-        .attr('stroke-width', 3)
-
-      // Update SVG viewBox
-      svg.attr('viewBox', `0 0 ${width} ${height}`)
+      // Add y-axis (now on the left side)
+      plotG.append('g').call(d3.axisLeft(y).ticks(5))
     },
-    createEmptyPlot(index, pair) {
-      const svg = d3.select(this.$refs[`svg${index}`][0])
-      svg.selectAll('*').remove()
-
-      const width = this.$refs[`svg${index}`][0].clientWidth
-      const height = 240 // Reduced height
-
-      svg.attr('viewBox', `0 0 ${width} ${height}`)
-
-      const gradient = svg
-        .append('defs')
-        .append('linearGradient')
-        .attr('id', `gradient-${index}`)
-        .attr('x1', '0%')
-        .attr('y1', '0%')
-        .attr('x2', '100%')
-        .attr('y2', '0%')
-
-      const [startHue, endHue] = pair.hueRange
-      gradient.append('stop').attr('offset', '0%').attr('stop-color', `hsl(${startHue}, 100%, 50%)`)
-      gradient.append('stop').attr('offset', '100%').attr('stop-color', `hsl(${endHue}, 100%, 50%)`)
-
-      svg
-        .append('rect')
-        .attr('width', width)
-        .attr('height', height)
-        .style('fill', `url(#gradient-${index})`)
-
-      // Add vertical line for user threshold
-      const x = d3.scaleLinear().domain(pair.hueRange).range([0, width])
-
-      const userThresholdX = x(this.userThresholds[index])
-      svg
-        .append('line')
-        .attr('x1', userThresholdX)
-        .attr('x2', userThresholdX)
-        .attr('y1', 0)
-        .attr('y2', height)
-        .attr('stroke', 'black')
-        .attr('stroke-width', 1)
-        .attr('stroke-dasharray', '5,5')
+    getColorInclusive(index) {
+      const pair = COLOR_PAIRS[index]
+      const colorKey = `${pair.color1}_${pair.color2}`
+      const xCdf = COLOR_DATA[colorKey].X_CDF
+      const yCdf = COLOR_DATA[colorKey].Y_CDF
+      const userThreshold = this.userThresholds[index]
+      const cdfIndex = xCdf.findIndex((value) => value > userThreshold)
+      return cdfIndex !== -1 ? yCdf[cdfIndex] : 1
     },
-    getMiddleColor(pair) {
-      const middleHue = (pair.hueRange[0] + pair.hueRange[1]) / 2
-      return `hsl(${middleHue}, 100%, 50%)`
+    hasData(pair) {
+      // Implement this method to check if you have data for the given pair
+      // Return true if data is available, false otherwise
+      return true // Placeholder implementation
     },
-    updateSvgDimensions() {
-      // This method is no longer needed for resizing, but you can keep it if you need it for other purposes
+    formatPercentage(value) {
+      return (value * 100).toFixed(1) + '%'
+    },
+    shareOnTwitter() {
+      window.open(
+        `https://twitter.com/intent/tweet?text=Check out my color test results!&url=${encodeURIComponent(this.shareLink)}`,
+        '_blank'
+      )
+    },
+    shareOnFacebook() {
+      window.open(
+        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(this.shareLink)}`,
+        '_blank'
+      )
+    },
+    copyShareLink() {
+      navigator.clipboard
+        .writeText(this.shareLink)
+        .then(() => {
+          alert('Link copied to clipboard!')
+        })
+        .catch((err) => {
+          console.error('Failed to copy link: ', err)
+        })
     }
   }
-  // beforeUnmount() {
-  //   window.removeEventListener('resize', this.updateSvgDimensions)
-  // }
 }
 </script>
 
-<style src="./ColorTest.css" scoped />
 <style scoped>
 .results-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.results-content {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding-bottom: 60px; /* Height of the sticky buttons */
-}
-
-.sticky-buttons {
-  position: sticky;
-  bottom: 0;
-  width: 100%;
-  background-color: white;
-  z-index: 10;
-}
-
-.svg-container {
-  flex-grow: 1;
-  position: relative;
-  width: 100%;
-  height: 240px; /* Reduced height */
-}
-
-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.color-chip {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  border: 2px solid black;
-  border-radius: 0.2em;
-  margin-bottom: -0.2em;
-}
-
-.floating-actions {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.floating-button {
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.floating-button:hover {
-  background-color: #2a70c2;
-}
-
-.color-gradient {
   width: 100%;
   height: auto;
+  min-height: 100vh;
+  overflow-y: visible;
+  position: relative;
+  padding-bottom: 40px;
 }
 
-.responsive-svg {
+.color-test-content.color-test-result-screen {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.gradient-container {
+  position: relative;
+  width: 100%;
+  height: 2400px;
+}
+
+.main-svg {
   width: 100%;
   height: 100%;
+}
+
+.color-label-container {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: calc(100% / 6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.color-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: black;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.color-description {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.7);
+  color: black;
+  backdrop-filter: blur(5px);
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.color-pair-result {
+  padding: 20px;
+  background-color: white;
+  margin-bottom: 10px;
+}
+
+.result-text {
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Position color label containers */
+.color-label-container:nth-child(1) {
+  top: -16.66%;
+} /* Shifted up by half a section */
+.color-label-container:nth-child(2) {
+  top: 0%;
+} /* Shifted up by half a section */
+.color-label-container:nth-child(3) {
+  top: 16.67%;
+} /* Shifted up by half a section */
+.color-label-container:nth-child(4) {
+  top: 33.34%;
+} /* Shifted up by half a section */
+.color-label-container:nth-child(5) {
+  top: 50%;
+} /* Shifted up by half a section */
+.color-label-container:nth-child(6) {
+  top: 66.67%;
+}
+.color-label-container:nth-child(7) {
+  top: 83.33%;
+}
+
+.start-test-button {
+  background-color: #4a90e2;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.start-test-button:hover {
+  background-color: #3a7bc8;
 }
 </style>

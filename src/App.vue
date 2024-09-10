@@ -1,15 +1,10 @@
 <template>
-  <ColorTest />
+  <router-view></router-view>
 </template>
 
 <script>
-import ColorTest from './components/ColorTest.vue'
-
 export default {
-  name: 'App',
-  components: {
-    ColorTest
-  }
+  name: 'App'
 }
 </script>
 
@@ -21,7 +16,7 @@ body,
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 #app {

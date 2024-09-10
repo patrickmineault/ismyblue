@@ -1,14 +1,20 @@
-.color-test-wrapper {
-  width: 100vw !important;
+.color-test-wrapper,
+.color-test-container,
+.color-test-content {
+  width: 100% !important;
   max-width: none !important;
-  height: 100dvh;
-  overflow: hidden;
+}
+
+.color-test-wrapper,
+.color-test-container {
+  min-height: 100dvh;
+}
+
+.color-test-wrapper {
+  overflow-y: auto;
 }
 
 .color-test-container {
-  width: 100% !important;
-  max-width: none !important;
-  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -20,9 +26,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100% !important;
-  max-width: none !important;
-  overflow: hidden;
+  overflow-y: visible;
 }
 
 .color-test-title {
@@ -39,25 +43,25 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: visible;
+}
+
+.color-test-result-color,
+.color-test-result-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
 }
 
 .color-test-result-color {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 1rem;
 }
 
 .color-test-result-text {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 1rem;
 }
 
 .result-text,
@@ -239,7 +243,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .svg-container {
@@ -285,7 +289,7 @@
   position: sticky;
   bottom: 0;
   background-color: white;
-  padding: 1rem;
+  /* padding: 1px; */
   border-top: 1px solid #ccc;
 }
 
