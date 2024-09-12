@@ -1,8 +1,8 @@
 <template>
   <div class="floating-share-card">
     <div class="share-content">
-      <h3>{{ isSharedResult ? 'See how you compare!' : 'Share your results' }}</h3>
-      <template v-if="!isSharedResult">
+      <h3>{{ cardTitle }}</h3>
+      <template v-if="hasCompletedOwnTest">
         <div class="social-icons">
           <i class="fab fa-twitter" @click="shareOnTwitter"></i>
           <i class="fab fa-facebook" @click="shareOnFacebook"></i>
@@ -25,13 +25,28 @@
 export default {
   name: 'FloatingShareCard',
   props: {
-    isSharedResult: {
+    hasCompletedOwnTest: {
       type: Boolean,
-      default: false
+      required: true
     },
     shareLink: {
       type: String,
       default: ''
+    }
+  },
+  mounted() {
+    console.log('FloatingShareCard: Received props:', {
+      hasCompletedOwnTest: this.hasCompletedOwnTest,
+      shareLink: this.shareLink
+    })
+  },
+  computed: {
+    cardTitle() {
+      if (this.hasCompletedOwnTest) {
+        return 'Share your results'
+      } else {
+        return 'See how you compare!'
+      }
     }
   },
   methods: {

@@ -37,25 +37,21 @@
           :xCdfs="xCdfs"
           :yCdfs="yCdfs"
           :userThresholds="finalHues"
-          :isSharedResult="false"
           :shareLink="shareLink"
+          :hasCompletedOwnTest="true"
           @reset="reset"
           @start-test="startNewTest"
         />
       </div>
 
       <BottomButtons
+        :visible="true"
         :showTestButtons="rounds < MAX_ROUNDS"
+        :hasCompletedOwnTest="true"
         :buttonOrder="buttonOrder"
         @select-color="selectColor"
         @reset="reset"
-      />
-
-      <!-- Add the floating share card -->
-      <FloatingShareCard
-        v-if="rounds === MAX_ROUNDS"
-        :isSharedResult="false"
-        :shareLink="shareLink"
+        @retake-test="reset"
       />
     </div>
   </div>
@@ -94,6 +90,7 @@ export default {
       MAX_ROUNDS: MAX_ROUNDS,
       colorPairs: COLOR_PAIRS,
       currentPairIndex: 0,
+      hasCompletedOwnTest: false,
 
       // User inputs and responses
       finalHues: COLOR_PAIRS.map(() => 0),
@@ -167,6 +164,12 @@ export default {
   },
   methods: {
     selectColor(color) {
+      console.log(`Color selected: ${color}`)
+
+      if (!this.buttonOrder.includes(color)) {
+        console.error(`Invalid color selected: ${color}`)
+        return
+      }
       const roundStartTime = performance.now()
 
       // console.log('Color selected:', {
@@ -250,6 +253,7 @@ export default {
     },
     startNewTest() {
       this.reset()
+      this.$router.push('/')
     },
     reset() {
       this.anonymousId = this.generateAnonymousId()
@@ -344,7 +348,7 @@ export default {
 
           // Navigate to the Results page with the user's data
           this.$router.push({
-            name: 'SharedResult',
+            name: 'Results',
             params: { id: resultId }
           })
         } else {
@@ -380,6 +384,10 @@ export default {
         )
         return midpoint - b
       })
+
+      // Set localStorage item when test is completed
+      localStorage.setItem('hasCompletedTest', 'true')
+      console.log('ColorTest: Writing to localStorage - hasCompletedTest: true')
 
       // Fetch aggregate data
       this.aggregateData = await fetchAggregateData()

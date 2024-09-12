@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ColorTest from '@/components/ColorTest.vue'
-import Results from '@/components/Results.vue'
-import SharedResults from '@/components/SharedResults.vue'
+import ResultsView from '@/components/Results.vue'
 
 const routes = [
   {
@@ -10,18 +9,11 @@ const routes = [
     component: ColorTest
   },
   {
-    path: '/results',
-    name: 'Results',
-    component: Results,
-    props: true
-  },
-  {
     path: '/result/:id',
-    name: 'SharedResult',
-    component: SharedResults,
+    name: 'Results',
+    component: ResultsView,
     props: (route) => ({
       id: route.params.id
-      // userThresholds: JSON.parse(route.query.userThresholds || '[]')
     })
   },
   {

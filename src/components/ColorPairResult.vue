@@ -75,6 +75,22 @@ export default {
     inclusivePercentage: {
       type: Number,
       required: true
+    },
+    binPositions: {
+      type: Array,
+      required: true
+    },
+    counts: {
+      type: Array,
+      required: true
+    },
+    xCdf: {
+      type: Array,
+      required: true
+    },
+    yCdf: {
+      type: Array,
+      required: true
     }
   },
   computed: {
@@ -84,9 +100,7 @@ export default {
       }
     },
     hasData() {
-      // Implement this method to check if you have data for the given pair
-      // Return true if data is available, false otherwise
-      return true // Placeholder implementation
+      // return this.xCdf.length > 0 && this.yCdf.length > 0
     }
   },
   methods: {

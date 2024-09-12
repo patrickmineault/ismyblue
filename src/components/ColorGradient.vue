@@ -87,13 +87,20 @@ export default {
       })
     },
     createPlot(g, pair, index, width, height) {
+      const plotHeight = height * 0.8 // Reduce plot height to 80% of available space
       const plotG = g
         .append('g')
-        .attr('transform', `translate(${this.margin.left},${this.margin.top + index * height})`)
+        .attr(
+          'transform',
+          `translate(${this.margin.left},${this.margin.top + index * height + (height - plotHeight) / 2})`
+        )
 
       const y = d3.scaleLinear().domain(pair.hueRange).range([0, height])
 
-      const x = d3.scaleLinear().domain([0, 1]).range([0, width])
+      const x = d3
+        .scaleLinear()
+        .domain([0, 1])
+        .range([0, width - this.margin.left - this.margin.right])
 
       const colorKey = `${pair.color1}_${pair.color2}`
       const xCdf = COLOR_DATA[colorKey].X_CDF

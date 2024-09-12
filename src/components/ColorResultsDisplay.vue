@@ -8,6 +8,10 @@
       :index="index"
       :userThreshold="userThresholds[index]"
       :inclusivePercentage="inclusivePercentages[index]"
+      :binPositions="binPositions[index]"
+      :counts="counts[index]"
+      :xCdf="xCdfs[index]"
+      :yCdf="yCdfs[index]"
     />
   </div>
 </template>
@@ -24,6 +28,22 @@ export default {
   },
   props: {
     userThresholds: {
+      type: Array,
+      required: true
+    },
+    binPositions: {
+      type: Array,
+      required: true
+    },
+    counts: {
+      type: Array,
+      required: true
+    },
+    xCdfs: {
+      type: Array,
+      required: true
+    },
+    yCdfs: {
       type: Array,
       required: true
     }
